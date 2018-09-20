@@ -11,11 +11,8 @@ set log-view    = line-number:yes,interval=1 text
 set blob-view   = line-number:yes,interval=1 text
 set diff-view   = line-number:yes,interval=1 text:yes,commit-title-overflow=no
 
-# # 画面を垂直方向に分割する
-set vertical-split = no
-#
 # 横分割に強制する
-set vertical-split = yes
+set vertical-split = no
 set split-view-height = 80%
 #
 # # デフォルト値
