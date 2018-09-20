@@ -3,7 +3,7 @@ export ZPLUG_HOME=/usr/local/opt/zplug
 source $ZPLUG_HOME/init.zsh
 
 # Environment
-export GOPATH=$HOME/go
+export GOPATH=$HOME/repo
 export PATH=$PATH:$GOPATH/bin
 PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 
