@@ -144,5 +144,6 @@ bindkey '^r' select-history
 # alias
 alias gitfrom="git show-branch | grep '*' | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -1 | awk -F'[]~^[]' '{print $2}'"
 alias g='cd $(ghq root)/$(ghq list | peco)'
+alias b='hub browse'
 
 eval $(thefuck --alias)
