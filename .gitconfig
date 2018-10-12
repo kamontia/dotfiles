@@ -14,3 +14,5 @@ root = ~/repo/src
   tool = meld
 [mergetool "meld"]
   cmd = meld $LOCAL $BASE $REMOTE --auto-merge
+[core]
+	editor = vim -c \"set fenc=utf-8\"
