@@ -60,8 +60,8 @@ zstyle ':completion:*' recent-dirs-insert both
 ### _ignored: 補完候補にださないと指定したものも補完候補とする。
 ### _approximate: 似ている補完候補も補完候補とする。
 ### _prefix: カーソル以降を無視してカーソル位置までで補完する。
-#zstyle ':completion:*' completer _oldlist _complete _match _history _ignored _approximate _prefix
-zstyle ':completion:*' completer _complete _ignored
+zstyle ':completion:*' completer _oldlist _complete _match _history _ignored _approximate _prefix
+#zstyle ':completion:*' completer _complete _ignored
 
 ## 補完候補をキャッシュする。
 zstyle ':completion:*' use-cache yes
@@ -142,8 +142,10 @@ bindkey '^r' select-history
 
 
 # alias
-alias gitfrom="git show-branch | grep '*' | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -1 | awk -F'[]~^[]' '{print $2}'"
+alias gf="git show-branch | grep '*' | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -1 | awk -F'[]~^[]' '{print $2}'"
 alias g='cd $(ghq root)/$(ghq list | peco)'
+alias pvim='vim $(find . -type f | peco)'
+alias pcat='cat $(find . -type f | peco)'
 alias b='hub browse'
 
 eval $(thefuck --alias)
