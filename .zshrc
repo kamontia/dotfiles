@@ -3,9 +3,12 @@ export ZPLUG_HOME=/usr/local/opt/zplug
 source $ZPLUG_HOME/init.zsh
 
 # Environment
+export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 export PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 export PATH=$HOME/.nodebrew/current/bin:$PATH
+
+export GITHUB_TOKEN="c89514b5972595c61a7ae720cce65446bca22eb0"
 
 # zplug settings
 
@@ -17,7 +20,10 @@ zplug "sindresorhus/pure", use:pure.zsh, from:github, as:theme
 zplug "zsh-users/zsh-syntax-highlighting"
 zplug "sorin-ionescu/prezto"
 zplug "mollifier/cd-gitroot"
-zplug "zsh-users/zsh-history-substring-search", do:"__zsh_version 4.3"
+zplug "zsh-users/zsh-history-substring-search"
+zplug "lukechilds/zsh-better-npm-completion"
+zplug "zsh-users/zsh-completions"
+zplug "chrissicool/zsh-256color"
 
 
 # Install plugins if there are plugins that have not been installed
@@ -119,8 +125,8 @@ compinit
 export LSCOLORS=exfxcxdxbxegedabagacad
 export LS_COLORS='di=34:ln=35:so=32:pi=33:ex=31:bd=46;34:cd=43;34:su=41;30:sg=46;30:tw=42;30:ow=43;30'
 
-alias ls="ls --color"
-alias ll="ls -alh --color"
+alias ls="gls --color"
+alias ll="gls -alh --color"
 
 zstyle ':completion:*' list-colors 'di=34' 'ln=35' 'so=32' 'ex=31' 'bd=46;34' 'cd=43;34'
 
