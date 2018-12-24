@@ -8,6 +8,7 @@ root = ~/repo/src
 
 [diff]
   tool = meld
+	compactionHeuristic = true
 [difftool "meld"]
   cmd = meld $LOCAL $REMOTE
 [merge]
@@ -25,3 +26,11 @@ root = ~/repo/src
   lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
   lga = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
   have = branch --contain
+
+
+[pager]
+	log = diff-highlight | less
+	show = diff-highlight | less
+	diff = diff-highlight | less
+[interactive]
+	diffFilter = diff-highlight
