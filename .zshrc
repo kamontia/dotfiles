@@ -18,7 +18,10 @@ zplug "sindresorhus/pure", use:pure.zsh, from:github, as:theme
 zplug "zsh-users/zsh-syntax-highlighting"
 zplug "sorin-ionescu/prezto"
 zplug "mollifier/cd-gitroot"
-zplug "zsh-users/zsh-history-substring-search", do:"__zsh_version 4.3"
+zplug "zsh-users/zsh-history-substring-search"
+zplug "lukechilds/zsh-better-npm-completion"
+zplug "zsh-users/zsh-completions"
+zplug "chrissicool/zsh-256color"
 
 
 # Install plugins if there are plugins that have not been installed
@@ -113,7 +116,7 @@ REPORTTIME=3
 
 # ls に色をつける
 zstyle ':completion:*' list-colors "${LS_COLORS}" # 補完候補のカラー表示
-PROMPT="%K{000}%F{009}%n@%m: %f%k"
+PROMPT="%F{009}%n@%m: %f%k"
 autoload -U compinit
 compinit
 
