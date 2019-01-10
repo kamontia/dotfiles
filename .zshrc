@@ -145,7 +145,20 @@ bindkey '^r' select-history
 alias gf="git show-branch | grep '*' | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -1 | awk -F'[]~^[]' '{print $2}'"
 alias g='cd $(ghq root)/$(ghq list | peco)'
 alias pvim='vim $(find . -type f | peco)'
-alias pcat='cat $(find . -type f | peco)'
+alias pcat='bat $(find . -type f | peco)'
+alias pcd='cd $(find . -type f | peco | xargs dirname )'
 alias b='hub browse'
+alias gitroot='cd-gitroot'
 
 eval $(thefuck --alias)
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# move git root
+function git-root() {
+  if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    cd `pwd`/`git rev-parse --show-cdup`
+  fi
+}
