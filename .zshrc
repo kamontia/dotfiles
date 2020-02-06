@@ -6,7 +6,7 @@ source $ZPLUG_HOME/init.zsh
 export GOPATH=$HOME/repo
 export PATH=$PATH:$GOPATH/bin
 export PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
-export PATH=$HOME/.nodebrew/current/bin:$PATH
+export PATH=$HOME/.nodebrew/current/bin:/usr/local/bin:$PATH
 
 # zplug settings
 
@@ -153,8 +153,6 @@ alias pcd='cd $(find . -type f | peco | xargs dirname )'
 alias b='hub browse'
 alias gitroot='cd-gitroot'
 
-eval $(thefuck --alias)
-
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
@@ -165,3 +163,15 @@ function git-root() {
     cd `pwd`/`git rev-parse --show-cdup`
   fi
 }
+
+
+# anyenv
+export PATH="$HOME/.anyenv/bin:$PATH"
+eval "$(anyenv init -)"
+# thefuck
+eval $(thefuck --alias)
+export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"
+export PATH="/usr/local/opt/libxml2/bin:$PATH"
+export PATH="/usr/local/opt/bison@2.7/bin:$PATH"
+
+clear
