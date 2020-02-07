@@ -22,6 +22,10 @@ fi
 ### Alias
 alias g='cd $(ghq root)/$(ghq list | peco)'
 
+if type "nvim" >/dev/null 2>&1; then
+    alias vim='nvim -u ~/.nvimrc'
+fi
+
 # funciton
 function select-history() {
     local tac
@@ -54,3 +58,9 @@ export PATH="$HOME/.anyenv/bin:$PATH"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+export PATH="$HOME/.anyenv/bin:$PATH"
+
+eval "$(anyenv init -)"
+eval "$(pyenv virtualenv-init -)"

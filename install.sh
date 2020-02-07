@@ -9,9 +9,6 @@ function die(){
   exit 1
 }
 
-if ! $(isCmdOK pip); then
-  die "pip required"
-fi
 
 #######################
 # USER CONFIGURATION
@@ -41,11 +38,11 @@ else
   die "curl or wget required"
 fi
 
-cd $DOTPATH
+#cd $DOTPATH
 
-if [ $? -ne 0 ]; then
-  die "Not found: $DOTPATH"
-fi
+#if [ $? -ne 0 ]; then
+#  die "Not found: $DOTPATH"
+#fi
 
 
 
@@ -71,6 +68,10 @@ function install() {
    echo 'export PATH="$HOME/.anyenv/bin:$PATH"' >> ~/.zshrc
    ~/.anyenv/bin/anyenv init
    anyenv install --init
+
+   echo 'virtural env ...'
+   git clone https://github.com/pyenv/pyenv-virtualenv.git $(pyenv root)/plugins/pyenv-virtualenv
+
 
    echo "zprezto ..."
    git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
