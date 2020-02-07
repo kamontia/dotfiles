@@ -1,39 +1,26 @@
-# # Environment
-# export GOPATH=$HOME/repo
-# export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
-# export PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
-# 
-# # Two regular plugins loaded without tracking.
-# zplugin light zsh-users/zsh-autosuggestions
-# zplugin light zdharma/fast-syntax-highlighting
-# 
-# # Plugin history-search-multi-word loaded with tracking.
-# ice wait'!0' zplugin load zdharma/history-search-multi-word
-# 
-# # Load the pure theme, with zsh-async library that's bundled with it.
-# zplugin ice pick"async.zsh" src"pure.zsh"
-# zplugin light sindresorhus/pure
-# 
-# zplugin ice wait"!0" atinit"zpcompinit; zpcdreplay -q"
-# 
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block, everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
 
-## 実行したプロセスの消費時間が3秒以上かかったら
-## 自動的に消費時間の統計情報を表示する。
-REPORTTIME=3
+#
+# Executes commands at the start of an interactive session.
+#
+# Authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
 
-# ls に色をつける
-zstyle ':completion:*' list-colors "${LS_COLORS}" # 補完候補のカラー表示
-PROMPT="%F{009}%n@%m: %f%k"
-autoload -U compinit
-compinit
+# Source Prezto.
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
 
-export LSCOLORS=exfxcxdxbxegedabagacad
-export LS_COLORS='di=34:ln=35:so=32:pi=33:ex=31:bd=46;34:cd=43;34:su=41;30:sg=46;30:tw=42;30:ow=43;30'
+# Customize to your needs...
 
-alias ls="ls --color"
-alias ll="ls -alh --color"
-
-zstyle ':completion:*' list-colors 'di=34' 'ln=35' 'so=32' 'ex=31' 'bd=46;34' 'cd=43;34'
+### Alias
+alias g='cd $(ghq root)/$(ghq list | peco)'
 
 # funciton
 function select-history() {
@@ -51,34 +38,6 @@ zle -N select-history
 bindkey '^r' select-history
 
 
-# alias
-alias gf="git show-branch | grep '*' | grep -v "$(git rev-parse --abbrev-ref HEAD)" | head -1 | awk -F'[]~^[]' '{print $2}'"
-alias g='cd $(ghq root)/$(ghq list | peco)'
-alias pvim='vim $(find . -type f | peco)'
-alias pcat='bat $(find . -type f | peco)'
-alias pcd='cd $(find . -type f | peco | xargs dirname )'
-alias b='hub browse'
-alias gitroot='cd-gitroot'
-
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-# move git root
-function git-root() {
-  if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-    cd `pwd`/`git rev-parse --show-cdup`
-  fi
-}
-
-# anyenv
-export PATH="$HOME/.anyenv/bin:$PATH"
-eval "$(anyenv init -)"
-eval "$(nodenv init -)"
-
-# thefuck
-eval $(thefuck --alias)
-
 ### Added by Zinit's installer
 if [[ ! -f $HOME/.zinit/bin/zinit.zsh ]]; then
     print -P "%F{33}▓▒░ %F{220}Installing DHARMA Initiative Plugin Manager (zdharma/zinit)…%f"
@@ -91,23 +50,7 @@ source "$HOME/.zinit/bin/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 ### End of Zinit installer's chunk
+export PATH="$HOME/.anyenv/bin:$PATH"
 
-# Environment
-export GOPATH=$HOME/repo
-export PATH=$PATH:$GOPATH/bin:/usr/local/go/bin
-export PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
-
-# Two regular plugins loaded without tracking.
-zplugin light zsh-users/zsh-autosuggestions
-zplugin light zdharma/fast-syntax-highlighting
-zplugin load momo-lab/zsh-abbrev-alias
-
-# Plugin history-search-multi-word loaded with tracking.
-zplugin ice wait'!0' zplugin load zdharma/history-search-multi-word
-
-# Load the pure theme, with zsh-async library that's bundled with it.
-zplugin ice pick"async.zsh" src"pure.zsh"
-zplugin light sindresorhus/pure
-
-zplugin ice wait"!0" atinit"zpcompinit; zpcdreplay -q"
-
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
