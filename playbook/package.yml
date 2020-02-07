@@ -1,0 +1,10 @@
+- hosts: all
+  
+  tasks:
+      - name: Install package from list
+      - include: ubuntu.yml
+        when:
+            - ansible_distribution == "CentOS"
+    
+
+
