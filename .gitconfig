@@ -6,15 +6,15 @@ email = 17017563+kamontia@users.noreply.github.com
 [ghq]
 root = ~/repo/src
 
-[diff]
-  tool = meld
-	compactionHeuristic = true
-[difftool "meld"]
-  cmd = meld $LOCAL $REMOTE
-[merge]
-  tool = meld
-[mergetool "meld"]
-  cmd = meld $LOCAL $BASE $REMOTE --auto-merge
+#[diff]
+#  tool = meld
+#	compactionHeuristic = true
+#[difftool "meld"]
+#  cmd = meld $LOCAL $REMOTE
+#[merge]
+#  tool = meld
+#[mergetool "meld"]
+#  cmd = meld $LOCAL $BASE $REMOTE --auto-merge
 [core]
 	editor = vim -c \"set fenc=utf-8\"
 
