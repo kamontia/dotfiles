@@ -29,11 +29,47 @@ Plug 'nsf/gocode', { 'tag': 'v.20150303', 'rtp': 'vim' }
 
 " Plugin outside ~/.vim/plugged with post-update hook
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim'
 
 " Using vim lsp
 Plug 'prabirshrestha/async.vim'
 Plug 'prabirshrestha/vim-lsp'
 Plug 'mattn/vim-lsp-settings'
+
+"
+Plug 'ntpeters/vim-better-whitespace'
+Plug 'Yggdroot/indentLine'
+Plug 'airblade/vim-rooter'
+Plug 'tpope/vim-fugitive'
+Plug 'airblade/vim-gitgutter'
+Plug 'xuyuanp/nerdtree-git-plugin', { 'on': 'NERDTreeToggle' }
+Plug 'dense-analysis/ale'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'itchyny/lightline.vim'
+Plug 'sheerun/vim-polyglot'
+
+"Snipet
+Plug 'SirVer/ultisnips'
+Plug 'honza/vim-snippets'
+
+"Terminal
+Plug 'kassio/neoterm'
+
+"CommentOut
+Plug 'tpope/vim-commentary'
+
+"Undo
+Plug 'mbbill/undotree'
+
+"easymotion/vim-easymotion
+Plug 'easymotion/vim-easymotion'
+
+"tpope/vim-surround
+Plug 'tpope/vim-surround'
+
+"jiangmiao/auto-pairs
+Plug 'jiangmiao/auto-pairs'
+
 
 " Initialize plugin system
 call plug#end()

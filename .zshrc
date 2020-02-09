@@ -64,3 +64,4 @@ export PATH="$HOME/.anyenv/bin:$PATH"
 
 eval "$(anyenv init -)"
 eval "$(pyenv virtualenv-init -)"
+eval "$(nodenv init -)"
