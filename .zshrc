@@ -61,7 +61,12 @@ export PATH="$HOME/.anyenv/bin:$PATH"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export PATH="$HOME/.anyenv/bin:$PATH"
+export GOPATH="${HOME}/repo"
+export PATH="$PATH:$GOPATH/bin"
 
-eval "$(anyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-eval "$(nodenv init -)"
+eval "$(anyenv init - zsh)"
+eval "$(pyenv virtualenv-init - zsh)"
+eval "$(nodenv init - zsh)"
+export GOENV_DISABLE_GOPATH=1
+eval "$(goenv init - zsh)"
+
