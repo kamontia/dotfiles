@@ -20,7 +20,7 @@ fi
 # Customize to your needs...
 
 ### Alias
-alias g='cd $(ghq root)/$(ghq list | peco)'
+alias g='cd $(ghq root)/$(ghq list | fzf)'
 
 if type "nvim" >/dev/null 2>&1; then
     alias vim='nvim -u ~/.nvimrc'
