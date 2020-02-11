@@ -19,11 +19,10 @@ fi
 
 # Customize to your needs...
 
-### Alias
-alias g='cd $(ghq root)/$(ghq list | fzf)'
+
 
 if type "nvim" >/dev/null 2>&1; then
-    alias vim='nvim -u ~/.nvimrc'
+    alias vim='nvim' 
 fi
 
 # funciton
@@ -70,3 +69,16 @@ eval "$(nodenv init - zsh)"
 export GOENV_DISABLE_GOPATH=1
 eval "$(goenv init - zsh)"
 
+### Alias
+alias g='cd $(ghq root)/$(ghq list | fzf)'
+
+if [ "$(uname)" = "Darwin" ]; then
+  alias ls='ls -G'
+  alias ll='ls -G -l'
+  alias la='ls -G -la'
+else
+  alias ls='ls --color'
+  alias ll='ls --color -l'
+  alias la='ls --color -la'
+fi
+export PATH="$HOME/.anyenv/bin:$PATH"
