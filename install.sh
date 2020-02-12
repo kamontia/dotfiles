@@ -47,6 +47,7 @@ fi
 
 
 function deploy() {
+   #for file in $(find . -type d| sed 's/^\.\///');
    for file in .??*
    do
      [[ "$file" == ".git" ]] && continue

@@ -40,7 +40,6 @@ function select-history() {
 zle -N select-history
 bindkey '^r' select-history
 
-
 ### Added by Zinit's installer
 if [[ ! -f $HOME/.zinit/bin/zinit.zsh ]]; then
     print -P "%F{33}▓▒░ %F{220}Installing DHARMA Initiative Plugin Manager (zdharma/zinit)…%f"
@@ -71,6 +70,12 @@ eval "$(goenv init - zsh)"
 
 ### Alias
 alias g='cd $(ghq root)/$(ghq list | fzf)'
+alias gvim='find . -type f | fzf | xargs -o vim'
+
+function  moveDir(){
+	cd $1
+}
+alias gcd='moveDir $(find . -type d |fzf|xargs -L 1)'
 
 if [ "$(uname)" = "Darwin" ]; then
   alias ls='ls -G'
@@ -82,3 +87,5 @@ else
   alias la='ls --color -la'
 fi
 export PATH="$HOME/.anyenv/bin:$PATH"
+export PATH="/usr/local/opt/llvm/bin:$PATH"
+export PATH="/usr/local/opt/llvm/bin:$PATH"
