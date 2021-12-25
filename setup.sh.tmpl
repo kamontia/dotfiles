@@ -1,0 +1,17 @@
+#!/bin/bash
+
+## Terminal
+# Starship
+sh -c "$(curl -fsSL https://starship.rs/install.sh)"
+
+# Get Font
+{{ if (eq.chezmoi.os "linux") }}
+wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/UbuntuMono.zip
+wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/JetBrainsMono.zip
+unzip UbuntuMono.zip
+unzip JetBrainsMono.zip
+
+mkdir -p "~/.fonts/truetype/"
+cp -rp UbuntuMono       ~/.fonts/truetype/
+cp -rp JetBrainsMono    ~/.fonts/truetype/
+{{ end }}
