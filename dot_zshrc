@@ -15,7 +15,7 @@ if [[ $(command -v exa) ]]; then
   alias l='clear && ls'
 fi
 
-if [ -e . $HOME/.asdf/asdf.sh ]
+if [ -e $HOME/.asdf/asdf.sh ]
 then
   . $HOME/.asdf/asdf.sh
 fi
