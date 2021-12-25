@@ -20,6 +20,18 @@ then
   . $HOME/.asdf/asdf.sh
 fi
 
+### cd ghq project
+function ghq-fzf() {
+  local src=$(ghq list | fzf --layout=reverse --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/(README|readme).*")
+  if [ -n "$src" ]; then
+    BUFFER="cd $(ghq root)/$src"
+    zle accept-line
+  fi
+  zle -R -c
+}
+zle -N ghq-fzf
+bindkey '^]' ghq-fzf 
+
 ### Added by Zinit's installer
 if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
     print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
@@ -39,4 +51,6 @@ zinit load zdharma-continuum/history-search-multi-word
 zinit light zsh-users/zsh-autosuggestions
 zinit light zdharma-continuum/fast-syntax-highlighting
 
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+alias g="env"
