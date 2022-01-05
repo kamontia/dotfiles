@@ -9,35 +9,39 @@ sh -c "$(curl -fsLS git.io/chezmoi)" -- init --apply kamontia@gmail.com
 sh -c "$(curl -fsSL https://starship.rs/install.sh)"
 
 # Get Font
-
+{{ if (eq .chezmoi.os "linux") }}
 wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/UbuntuMono.zip
 wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/JetBrainsMono.zip
 
 mkdir -p "~/.fonts/truetype/"
 cp -rp UbuntuMono       ~/.fonts/truetype/
 cp -rp JetBrainsMono    ~/.fonts/truetype/
+{{ end }}
 
-
-
+{{ if (eq .chezmoi.os "darwin") }}
+brew tap homebrew/cask-fonts
+brew cask install 
+{{ end }}
 
 # Zinit
 sh -c "$(curl -fsSL https://git.io/zinit-install)"
 
 ## Tools
 # tig,tmux
-
-sudo apt install tmux tig
+{{ if (eq .chezmoi.os "linux") }}
+sudo apt install tmux tig bat jq
 
 git clone https://github.com/x-motemen/ghq .
 make install
+{{ end }}
 
-
-
+{{ if (eq .chezmoi.os "darwin") }}
+brew install ghq
+{{ end }}
 
 # ghq
 git clone https://github.com/x-motemen/ghq ~/.ghq
-cd ~/.ghq
-make install
+cd ~/.ghq && make install
 
 # fzf
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
