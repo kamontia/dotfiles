@@ -13,6 +13,14 @@ show-merge = "!sh -c 'merge=$(git find-merge $0 $1) && [ -n \"$merge\" ] && git 
 lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
 lga = log --graph --all --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
 have = branch --contain
+df = diff
+co = commit
+br = branch
+ps = push
+pl = pull
+ck = checkout
+graph = log --pretty=format:'%Cgreen[%cd] %Cblue%h %Cred<%cn> %Creset%s' --date=short  --decorate --graph --branches --tags --remotes
+diffw = diff --word-diff
 
 # [pager]
 # log = diff-highlight | less
@@ -21,5 +29,23 @@ have = branch --contain
 
 [interactive]
 diffFilter = diff-highlight
+
+[push]
+default = current
+
+[core]
+quotepath  = false
+autocrlf   = false
+ignorecase = false
+editor     = vi
+
 [color]
 ui = auto
+
+[credential]
+helper = cache --timeout=3600
+
+# [http]
+# proxy = http://proxy.example.com:8080
+# [https]
+# proxy = http://proxy.example.com:8080
