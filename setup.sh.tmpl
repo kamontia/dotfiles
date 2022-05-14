@@ -29,7 +29,7 @@ sh -c "$(curl -fsSL https://git.io/zinit-install)"
 ## Tools
 # tig,tmux
 {{ if (eq .chezmoi.os "linux") }}
-sudo apt install tmux tig bat jq
+sudo apt install tmux tig bat jq unzip
 
 git clone https://github.com/x-motemen/ghq .
 make install
@@ -39,14 +39,20 @@ make install
 brew install ghq
 {{ end }}
 
-# ghq
-git clone https://github.com/x-motemen/ghq ~/.ghq
-cd ~/.ghq && make install
-
-# fzf
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install
-
 # asdf
 git clone https://github.com/asdf-vm/asdf.git ~/.asdf
 
+# install fzf
+asdf plugin add fzf https://github.com/kompiro/asdf-fzf.git
+asdf install fzf latest
+asdf global latest
+
+# install ghq
+asdf plugin add ghq
+asdf install ghq latest
+asdf global latest
+
+# install exa
+asdf plugin add exa
+asdf install exa latest
+asdf global exa latest
