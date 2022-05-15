@@ -62,7 +62,7 @@ alias g="env"
 # Options
 setopt share_history # Share history
 setopt hist_ignore_dups
-setopt hist_ignore_all_dups
+#setopt hist_ignore_all_dups
 setopt hist_reduce_blanks
 setopt correct
 setopt auto_pushd
