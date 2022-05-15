@@ -1,5 +1,8 @@
 eval "$(starship init zsh)"
 
+autoload -Uz compinit
+compinit
+
 if [[ $(command -v exa) ]]; then
   alias e='exa --icons --git'
   alias l=e
@@ -19,6 +22,9 @@ if [ -e $HOME/.asdf/asdf.sh ]
 then
   . $HOME/.asdf/asdf.sh
 fi
+
+# k8s
+source <(kubectl completion zsh)
 
 ### cd ghq project
 function ghq-fzf() {
@@ -54,3 +60,4 @@ zinit light zdharma-continuum/fast-syntax-highlighting
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 alias g="env"
+
