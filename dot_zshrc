@@ -1,8 +1,5 @@
 eval "$(starship init zsh)"
 
-autoload -Uz compinit
-compinit
-
 if [[ $(command -v exa) ]]; then
   alias e='exa --icons --git'
   alias l=e
@@ -61,3 +58,23 @@ zinit light zdharma-continuum/fast-syntax-highlighting
 
 alias g="env"
 
+# Options
+setopt share_history # Share history
+setopt hist_ignore_dups
+setopt hist_ignore_all_dups
+setopt hist_reduce_blanks
+setopt correct
+setopt auto_pushd
+setopt pushd_ignore_dups
+setopt auto_cd
+setopt extended_glob
+autoload -Uz colors
+colors
+setopt print_eight_bit
+HISTFILE=~/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+zstyle ':completion:*:default' menu select=1
+
+autoload -Uz compinit
+compinit
