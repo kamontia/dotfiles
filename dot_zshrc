@@ -55,6 +55,7 @@ zinit light zsh-users/zsh-autosuggestions
 zinit light zdharma-continuum/fast-syntax-highlighting
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+[ -f ~/.kubectl_aliases ] && source ~/.kubectl_aliases
 
 alias g="env"
 
