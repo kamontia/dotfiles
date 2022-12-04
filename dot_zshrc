@@ -77,5 +77,10 @@ HISTSIZE=100000
 SAVEHIST=100000
 zstyle ':completion:*:default' menu select=1
 
+# ENV
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+eval "$(gh completion -s zsh)"
+
 autoload -Uz compinit
 compinit
