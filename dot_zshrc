@@ -12,6 +12,21 @@ fi
 # nvimのパスを追加
 export PATH="/opt/nvim-linux64/bin/:$PATH"
 
+# 2. 補完システムコア初期化
+# Zshの補完システムを初期化します。
+# これを早期に実行することで、後続のプラグインや設定が compdef を利用できるようになります。
+autoload -Uz compinit
+# ~/.zcompdump ファイルのパーミッションが安全でない場合のエラーを抑制し(-i)、
+# ダンプファイルの場所を明示的に指定します(-d)。
+# 1日に1回だけ zcompdump を再生成するようにする
+if [ $(date +%j) != $(date +%j -r ~/.zcompdump 2>/dev/null) ]; then
+  compinit -i -d ~/.zcompdump
+else
+  compinit -C -i -d ~/.zcompdump # キャッシュを使う
+fi
+
+# 3. mise (旧 rtx) バージョンマネージャー と 必須ツール管理
+# miseがインストールされていなければインストールを試みる
 if ! command -v mise &> /dev/null; then
   echo "mise が見つかりません。インストールを試みます..."
   if command -v curl &> /dev/null; then
@@ -39,13 +54,14 @@ fi
 
 # mise activate zsh を実行して、miseをシェルに統合します。
 # これにより、shimsのパス設定や補完が自動的に行われます。
+# compinit が先に実行されているため、mise activate が compdef を使用する場合も安全です。
 if command -v mise &> /dev/null; then
   eval "$(mise activate zsh)"
 
   # --- mise経由での必須ツールインストールとグローバル設定 ---
   # 指定されたツールがmiseによってグローバルバージョンとして認識されていなければ、
   # mise use --global <tool>@latest でインストール・設定
-  local tools_to_ensure=("eza" "ghq" "fzf" "starship" "bat")
+  local tools_to_ensure=("eza" "ghq" "fzf" "starship")
   for tool_name in "${tools_to_ensure[@]}"; do
     # mise current "$tool_name" でグローバルバージョンが設定されているか確認
     if ! mise current "$tool_name" &> /dev/null; then
@@ -55,8 +71,6 @@ if command -v mise &> /dev/null; then
       else
         echo "'$tool_name' のインストールまたはグローバル設定に失敗しました。" >&2
       fi
-    # else
-      # echo "'$tool_name' は既にmiseによってグローバルバージョンが設定されています。" # デバッグ用
     fi
   done
   # --- ここまでツールインストール ---
@@ -72,13 +86,13 @@ else
   fi
 fi
 
-# 3. Starship プロンプト
+# 4. Starship プロンプト
 # Starshipの初期化 (miseでインストールされた場合もここで有効になる)
 if command -v starship &> /dev/null; then
   eval "$(starship init zsh)"
 fi
 
-# 4. Zinit プラグインマネージャー
+# 5. Zinit プラグインマネージャー
 # Zinitがインストールされていなければインストールする
 if [[ ! -f "$HOME/.local/share/zinit/zinit.git/zinit.zsh" ]]; then
     print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
@@ -88,7 +102,7 @@ if [[ ! -f "$HOME/.local/share/zinit/zinit.git/zinit.zsh" ]]; then
         print -P "%F{160} The clone has failed.%f%b"
 fi
 
-# Zinitを読み込む
+# Zinitを読み込む (compinit が先に実行されているため、Zinitプラグインが compdef を使用する場合も安全)
 source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
@@ -98,16 +112,33 @@ zinit load zdharma-continuum/history-search-multi-word
 zinit light zsh-users/zsh-autosuggestions
 zinit light zdharma-continuum/fast-syntax-highlighting
 
-# 6. エイリアス
-# 6.1. Podman (Dockerの代替)
+# 7. 個別コマンド補完の読み込み
+# 以下の補完設定は、各コマンドがmise等でPATHに通っており、かつcompinitが実行された後に読み込まれます。
+# Podman 補完
+if command -v podman &> /dev/null; then
+  source <(podman completion zsh)
+fi
+# kubectl 補完
+if command -v kubectl &> /dev/null; then
+  source <(kubectl completion zsh)
+fi
+# gh (GitHub CLI) 補完
+if command -v gh &> /dev/null; then
+  eval "$(gh completion -s zsh)"
+fi
+# mise 自身の補完は `eval "$(mise activate zsh)"` に含まれるか、ここで明示的に source する必要があるかもしれません。
+# (通常 `mise activate` で処理されます)
+
+# 8. エイリアス
+# 8.1. Podman (Dockerの代替)
 # alias docker='podman'
 # alias docker-compose='podman-compose'
 
-# 6.2. 一般的なエイリアス
-alias vim="nvim"
-alias nvim="lvim"
+# 8.2. 一般的なエイリアス
+# alias vim="nvim"
+# alias nvim="lvim"
 
-# 6.3. モダンな 'ls' の代替 (eza)
+# 8.3. モダンな 'ls' の代替 (eza)
 if command -v eza &> /dev/null; then
   alias ls='eza --icons --git --group-directories-first'
   alias e='eza --icons --git --group-directories-first'
@@ -129,11 +160,11 @@ else
   alias l='clear && ls'
 fi
 
-# 6.4. Kubectl エイリアス
+# 8.4. Kubectl エイリアス
 [ -f ~/.kubectl_aliases ] && source ~/.kubectl_aliases
 
-# 7. 関数
-# 7.1. ghqで管理しているプロジェクトにfzfを使ってcdする関数
+# 9. 関数
+# 9.1. ghqで管理しているプロジェクトにfzfを使ってcdする関数
 function ghq-fzf() {
   if ! command -v ghq &> /dev/null; then echo "ghq コマンドが見つかりません。" >&2; return 1; fi
   if ! command -v fzf &> /dev/null; then echo "fzf コマンドが見つかりません。" >&2; return 1; fi
@@ -164,10 +195,8 @@ function ghq-fzf() {
 zle -N ghq-fzf
 bindkey '^]' ghq-fzf
 
-# 8. Zsh オプション (setopt)
+# 10. Zsh オプション (setopt)
 setopt extended_glob
-# autoload -Uz colors # Starshipなどが色管理をするため通常不要
-# colors
 # setopt print_eight_bit # UTF-8環境では通常不要
 
 # 履歴関連
@@ -189,28 +218,6 @@ setopt correct_all          # 全ての引数に対してtypo修正を試みる 
 
 # 補完スタイル
 zstyle ':completion:*:default' menu select=1
-
-# 9. 補完システム
-autoload -Uz compinit
-if [ $(date +%j) != $(date +%j -r ~/.zcompdump 2>/dev/null) ]; then
-  compinit -i -d ~/.zcompdump
-else
-  compinit -C -i -d ~/.zcompdump
-fi
-
-# コマンド補完の読み込み
-# Podman 補完 (miseでpodmanを管理する場合も、podman自身が提供する補完スクリプトを利用)
-if command -v podman &> /dev/null; then
-  source <(podman completion zsh)
-fi
-# kubectl 補完
-if command -v kubectl &> /dev/null; then
-  source <(kubectl completion zsh)
-fi
-# gh (GitHub CLI) 補完
-if command -v gh &> /dev/null; then
-  eval "$(gh completion -s zsh)"
-fi
 
 # --- ここまで ---
 # ローカル設定などがあれば読み込む
