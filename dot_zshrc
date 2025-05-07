@@ -1,42 +1,86 @@
-eval "$(starship init zsh)"
+# ~/.zshrc
 
-if [[ $(command -v exa) ]]; then
-  alias e='exa --icons --git'
-  alias l=e
-  alias ls=e
-  alias ea='exa -a --icons --git'
-  alias la=ea
-  alias ee='exa -aahl --icons --git'
-  alias ll=ee
-  alias et='exa -T -L 3 -a -I "node_modules|.git|.cache" --icons'
-  alias lt=et
-  alias eta='exa -T -a -I "node_modules|.git|.cache" --color=always --icons | less -r'
-  alias lta=eta
-  alias l='clear && ls'
+# 1. 環境変数
+# GOPATHの設定
+export GOPATH=$HOME/go
+# PATHにGOPATH/binを追加
+export PATH=$PATH:$GOPATH/bin
+# ユーザーローカルのbinディレクトリをPATHに追加 (miseのインストール先など)
+if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+  export PATH="$HOME/.local/bin:$PATH"
 fi
+# nvimのパスを追加
+export PATH="/opt/nvim-linux64/bin/:$PATH"
 
-if [ -e $HOME/.asdf/asdf.sh ]
-then
-  . $HOME/.asdf/asdf.sh
-fi
+if ! command -v mise &> /dev/null; then
+  echo "mise が見つかりません。インストールを試みます..."
+  if command -v curl &> /dev/null; then
+    # miseの公式インストールスクリプトを実行 (冪等性あり)
+    curl -fsSL https://mise.run | sh
+    # インストール後、miseコマンドが利用可能か再確認
+    if [[ -x "$HOME/.local/bin/mise" ]]; then
+        export PATH="$HOME/.local/bin:$PATH" # PATHを即時反映
+    fi
 
-# k8s
-source <(kubectl completion zsh)
-
-### cd ghq project
-function ghq-fzf() {
-  local src=$(ghq list | fzf --layout=reverse --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/(README|readme).*")
-  if [ -n "$src" ]; then
-    BUFFER="cd $(ghq root)/$src"
-    zle accept-line
+    if ! command -v mise &> /dev/null; then
+      echo "mise のインストールに失敗したか、PATHが正しく設定されていません。" >&2
+      echo "シェルを再起動するか、手動でPATHを確認してください: export PATH=\"\$HOME/.local/bin:\$PATH\"" >&2
+      echo "詳細は https://mise.jdx.dev/getting-started.html を参照してください。" >&2
+    else
+      echo "mise のインストール/確認が完了しました。設定を有効にするため、一度シェルを再起動するか、`source ~/.zshrc` を実行してください。"
+      # 初回インストール時は mise activate をここで実行できるようにする
+      eval "$(mise activate zsh)"
+    fi
+  else
+    echo "curl コマンドが見つかりません。miseのインストールにはcurlが必要です。" >&2
+    echo "手動でmiseをインストールしてください: https://mise.jdx.dev/getting-started.html" >&2
   fi
-  zle -R -c
-}
-zle -N ghq-fzf
-bindkey '^]' ghq-fzf 
+fi
 
-### Added by Zinit's installer
-if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
+# mise activate zsh を実行して、miseをシェルに統合します。
+# これにより、shimsのパス設定や補完が自動的に行われます。
+if command -v mise &> /dev/null; then
+  eval "$(mise activate zsh)"
+
+  # --- mise経由での必須ツールインストールとグローバル設定 ---
+  # 指定されたツールがmiseによってグローバルバージョンとして認識されていなければ、
+  # mise use --global <tool>@latest でインストール・設定
+  local tools_to_ensure=("eza" "ghq" "fzf" "starship" "bat")
+  for tool_name in "${tools_to_ensure[@]}"; do
+    # mise current "$tool_name" でグローバルバージョンが設定されているか確認
+    if ! mise current "$tool_name" &> /dev/null; then
+      echo "'$tool_name' の有効なグローバルバージョンがmiseに設定されていません。miseを使用してインストールおよびグローバル設定します..."
+      if mise use --global "$tool_name@latest"; then
+        echo "'$tool_name' のインストールとグローバル設定が完了しました。"
+      else
+        echo "'$tool_name' のインストールまたはグローバル設定に失敗しました。" >&2
+      fi
+    # else
+      # echo "'$tool_name' は既にmiseによってグローバルバージョンが設定されています。" # デバッグ用
+    fi
+  done
+  # --- ここまでツールインストール ---
+else
+  # mise コマンドが見つからない、または activate に失敗した場合のメッセージ
+  if [ -x "$HOME/.local/bin/mise" ]; then
+     echo "mise はインストールされているようですが、シェルへの統合(activate)に失敗しました。" >&2
+     echo "シェルを再起動するか、miseのドキュメントを確認してください。" >&2
+  elif ! command -v curl &> /dev/null; then
+    : # curlがない場合はインストール試行中のメッセージでカバーされる
+  else
+     echo "mise コマンドが見つかりません。上記のインストール処理を確認してください。" >&2
+  fi
+fi
+
+# 3. Starship プロンプト
+# Starshipの初期化 (miseでインストールされた場合もここで有効になる)
+if command -v starship &> /dev/null; then
+  eval "$(starship init zsh)"
+fi
+
+# 4. Zinit プラグインマネージャー
+# Zinitがインストールされていなければインストールする
+if [[ ! -f "$HOME/.local/share/zinit/zinit.git/zinit.zsh" ]]; then
     print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
     command mkdir -p "$HOME/.local/share/zinit" && command chmod g-rwX "$HOME/.local/share/zinit"
     command git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" && \
@@ -44,43 +88,133 @@ if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
         print -P "%F{160} The clone has failed.%f%b"
 fi
 
+# Zinitを読み込む
 source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 
-# Plugin history-search-multi-word loaded with investigating.
+# Zinitプラグインの読み込み
 zinit load zdharma-continuum/history-search-multi-word
-# Two regular plugins loaded without investigating.
 zinit light zsh-users/zsh-autosuggestions
 zinit light zdharma-continuum/fast-syntax-highlighting
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# 6. エイリアス
+# 6.1. Podman (Dockerの代替)
+# alias docker='podman'
+# alias docker-compose='podman-compose'
+
+# 6.2. 一般的なエイリアス
+alias vim="nvim"
+alias nvim="lvim"
+
+# 6.3. モダンな 'ls' の代替 (eza)
+if command -v eza &> /dev/null; then
+  alias ls='eza --icons --git --group-directories-first'
+  alias e='eza --icons --git --group-directories-first'
+  alias la='eza --all --icons --git --group-directories-first'
+  alias ll='eza --long --all --header --git --icons --group-directories-first'
+  alias lt='eza --tree --level=3 --all --ignore-glob="node_modules|.git|.cache" --icons'
+  alias lta='eza --tree --all --ignore-glob="node_modules|.git|.cache" --color=always --icons | less -r'
+  alias l='clear && ls'
+elif command -v lsd &> /dev/null; then
+  alias ls='lsd --icon=auto'
+  alias ll='lsd -lAh --icon=auto'
+  alias la='lsd -A --icon=auto'
+  alias lt='lsd --tree --depth=3 -A --ignore-glob="node_modules|.git|.cache" --icon=auto'
+  alias l='clear && ls'
+else
+  alias ls='ls --color=auto -F'
+  alias ll='ls -lAhF'
+  alias la='ls -AF'
+  alias l='clear && ls'
+fi
+
+# 6.4. Kubectl エイリアス
 [ -f ~/.kubectl_aliases ] && source ~/.kubectl_aliases
 
-alias g="env"
+# 7. 関数
+# 7.1. ghqで管理しているプロジェクトにfzfを使ってcdする関数
+function ghq-fzf() {
+  if ! command -v ghq &> /dev/null; then echo "ghq コマンドが見つかりません。" >&2; return 1; fi
+  if ! command -v fzf &> /dev/null; then echo "fzf コマンドが見つかりません。" >&2; return 1; fi
 
-# Options
-setopt share_history # Share history
-setopt hist_ignore_dups
-#setopt hist_ignore_all_dups
-setopt hist_reduce_blanks
-setopt correct
-setopt auto_pushd
-setopt pushd_ignore_dups
-setopt auto_cd
+  local repo_root
+  repo_root=$(ghq root 2>/dev/null)
+  if [ -z "$repo_root" ] || [ ! -d "$repo_root" ]; then
+    echo "ghq root が見つからないか、設定されていません。" >&2
+    return 1
+  fi
+
+  local bat_cmd
+  if command -v bat &> /dev/null; then
+    bat_cmd="bat --color=always --style=header,grid --line-range :80"
+  else
+    bat_cmd="head -n 80"
+  fi
+
+  local src
+  src=$(ghq list | fzf --layout=reverse --preview "$bat_cmd $repo_root/{}/(README|readme|README.md|readme.md)(N.) 2>/dev/null || ls -p $repo_root/{}/ | head -n 30")
+
+  if [ -n "$src" ]; then
+    BUFFER="cd $repo_root/$src"
+    zle accept-line
+  fi
+  zle -R -c
+}
+zle -N ghq-fzf
+bindkey '^]' ghq-fzf
+
+# 8. Zsh オプション (setopt)
 setopt extended_glob
-autoload -Uz colors
-colors
-setopt print_eight_bit
+# autoload -Uz colors # Starshipなどが色管理をするため通常不要
+# colors
+# setopt print_eight_bit # UTF-8環境では通常不要
+
+# 履歴関連
 HISTFILE=~/.zsh_history
 HISTSIZE=100000
 SAVEHIST=100000
+setopt share_history
+setopt hist_ignore_dups
+setopt hist_ignore_all_dups # 履歴全体から重複を削除 (古いものから)
+setopt hist_reduce_blanks
+setopt append_history
+
+# その他オプション
+setopt auto_pushd
+setopt pushd_ignore_dups
+setopt auto_cd
+setopt correct              # コマンドのtypoを修正 (お好みで)
+setopt correct_all          # 全ての引数に対してtypo修正を試みる (より積極的)
+
+# 補完スタイル
 zstyle ':completion:*:default' menu select=1
 
-# ENV
-export GOPATH=$HOME/go
-export PATH=$PATH:$GOPATH/bin
-eval "$(gh completion -s zsh)"
-
+# 9. 補完システム
 autoload -Uz compinit
-compinit
+if [ $(date +%j) != $(date +%j -r ~/.zcompdump 2>/dev/null) ]; then
+  compinit -i -d ~/.zcompdump
+else
+  compinit -C -i -d ~/.zcompdump
+fi
+
+# コマンド補完の読み込み
+# Podman 補完 (miseでpodmanを管理する場合も、podman自身が提供する補完スクリプトを利用)
+if command -v podman &> /dev/null; then
+  source <(podman completion zsh)
+fi
+# kubectl 補完
+if command -v kubectl &> /dev/null; then
+  source <(kubectl completion zsh)
+fi
+# gh (GitHub CLI) 補完
+if command -v gh &> /dev/null; then
+  eval "$(gh completion -s zsh)"
+fi
+
+# --- ここまで ---
+# ローカル設定などがあれば読み込む
+# if [ -f ~/.zshrc.local ]; then
+#   source ~/.zshrc.local
+# fi
+
