@@ -1,37 +1,34 @@
-// Zellij Configuration (Vim-optimized)
+// Zellij Configuration
 
 theme "catppuccin-macchiato"
-default_layout "compact"
-pane_frames false
+pane_frames true
 copy_on_select true
 
 keybinds {
-    // 全てのモードで共通の Vim 移動を許可（Alt+hjkl）
+    // Normalモードで確実に動くように明示
+    normal {
+        bind "Alt h" { MoveFocus "Left"; }
+        bind "Alt j" { MoveFocus "Down"; }
+        bind "Alt k" { MoveFocus "Up"; }
+        bind "Alt l" { MoveFocus "Right"; }
+        bind "Alt f" { ToggleFocusFullscreen; }
+        
+        bind "Ctrl 1" { GoToTab 1; }
+        bind "Ctrl 2" { GoToTab 2; }
+        bind "Ctrl 3" { GoToTab 3; }
+        bind "Ctrl 4" { GoToTab 4; }
+        bind "Ctrl 5" { GoToTab 5; }
+        bind "Ctrl 6" { GoToTab 6; }
+        bind "Ctrl 7" { GoToTab 7; }
+        bind "Ctrl 8" { GoToTab 8; }
+        bind "Ctrl 9" { GoToTab 9; }
+    }
+    
+    // 全てのモードで共通（locked以外）
     shared_except "locked" {
         bind "Alt h" { MoveFocus "Left"; }
         bind "Alt j" { MoveFocus "Down"; }
         bind "Alt k" { MoveFocus "Up"; }
         bind "Alt l" { MoveFocus "Right"; }
-    }
-
-    // Normal モードでの設定
-    normal {
-        bind "p" { SwitchToMode "Pane"; }
-        bind "t" { SwitchToMode "Tab"; }
-        bind "s" { SwitchToMode "Scroll"; }
-        bind "o" { SwitchToMode "Session"; }
-        bind "q" { Quit; }
-    }
-
-    // 特定の入力モードでの jk エスケープ (Zellij の入力フィールド等)
-    tmux {
-        bind "j" {
-            sequence {
-                Input 'j';
-                // Zellij は jk シーケンスを直接 Esc にするのは難しいため、
-                // モード切り替えキー（Ctrl+b 等）を前提にするのが一般的ですが、
-                // ここでは Vim 移動に注力します。
-            }
-        }
     }
 }
