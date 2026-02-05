@@ -70,6 +70,7 @@ if (( $+commands[exa] )); then
   alias lta=eta
 fi
 alias g="env"
+alias y='yazi'
 
 ### ghq + fzf (Faster list)
 function ghq-fzf() {
@@ -102,7 +103,7 @@ zinit ice wait'0' lucid; zinit load zdharma-continuum/history-search-multi-word
 zinit ice wait'0' lucid atload'_zsh_autosuggest_start'; zinit light zsh-users/zsh-autosuggestions
 zinit ice wait'0' lucid atinit'zpcompinit; zpcdreplay'; zinit light zdharma-continuum/fast-syntax-highlighting
 
-# FZF integration via Zinit (More efficient than sourcing .fzf.zsh)
+# FZF integration via Zinit
 zinit ice wait'0' lucid
 zinit snippet /Users/kamo/.fzf/shell/completion.zsh
 zinit ice wait'0' lucid
@@ -125,7 +126,7 @@ else
   compinit
 fi
 
-### Google Cloud SDK (Lazy load both path and completion)
+### Google Cloud SDK (Lazy load)
 if [[ -f '/Users/kamo/google-cloud-sdk/path.zsh.inc' ]]; then
     zinit ice wait'0' lucid
     zinit snippet '/Users/kamo/google-cloud-sdk/path.zsh.inc'
@@ -133,4 +134,31 @@ fi
 if [[ -f '/Users/kamo/google-cloud-sdk/completion.zsh.inc' ]]; then
     zinit ice wait'1' lucid
     zinit snippet '/Users/kamo/google-cloud-sdk/completion.zsh.inc'
-fialias y='yazi'
+fi
+
+### VI Mode Settings (Moved to end to ensure it's not overwritten)
+bindkey -v
+export KEYTIMEOUT=1
+
+# jk to escape
+bindkey -M viins 'jk' vi-cmd-mode
+
+# Change cursor shape for different modes
+function zle-keymap-select {
+  if [[ ${KEYMAP} == vicmd ]]; then
+    echo -ne "\e[2q" # Block cursor
+  else
+    echo -ne "\e[6q" # Beam cursor
+  fi
+}
+zle -N zle-keymap-select
+zle-line-init() {
+    zle -K viins # initiate `vi insert` as default
+    echo -ne "\e[6q"
+}
+zle -N zle-line-init
+
+# Use beam cursor for each new prompt
+preexec() {
+    echo -ne "\e[6q"
+}
