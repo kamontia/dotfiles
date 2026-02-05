@@ -1,4 +1,4 @@
-.PHONY: all help brew tools fonts dotfiles clean
+.PHONY: all help brew tools fonts dotfiles clean mac_setup
 
 # デフォルトターゲット
 all: brew tools mac_setup dotfiles fonts
@@ -17,29 +17,23 @@ help:
 # macOS System Defaults
 mac_setup:
 	@echo "Configuring macOS system defaults..."
-	# キーリピートを爆速にする
 	defaults write NSGlobalDomain KeyRepeat -int 2
 	defaults write NSGlobalDomain InitialKeyRepeat -int 15
-	# Dockを自動的に隠す
 	defaults write com.apple.dock autohide -bool true
-	# デスクトップにアイコンを表示しない
 	defaults write com.apple.finder CreateDesktop -bool false
-	# スクリーンショットの影を消す
 	defaults write com.apple.screencapture disable-shadow -bool true
-	# Finderで拡張子を常に表示
 	defaults write NSGlobalDomain AppleShowAllExtensions -bool true
-	# クラッシュレポートを無効化
 	defaults write com.apple.CrashReporter DialogType -string "none"
 	@echo "System settings applied. Some changes may require a logout/restart."
 
 # Homebrewのインストール
 brew:
-	@if [ -z "$$(command -v brew)" ]; then 
-		echo "Installing Homebrew..."; 
-		/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; 
-		eval "$$(/opt/homebrew/bin/brew shellenv)"; 
-	else 
-		echo "Homebrew is already installed."; 
+	@if [ -z "$$(command -v brew)" ]; then \
+		echo "Installing Homebrew..."; \
+		/bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
+		eval "$$(/opt/homebrew/bin/brew shellenv)"; \
+	else \
+		echo "Homebrew is already installed."; \
 	fi
 
 # Brewfileに基づくツールのインストール
@@ -52,11 +46,9 @@ fonts: tools
 
 # chezmoiによる設定の適用
 dotfiles: tools
-	@if [ ! -d "$$HOME/.local/share/chezmoi" ]; then 
-		echo "Initializing chezmoi..."; 
-		chezmoi init; 
+	@if [ ! -d "$$HOME/.local/share/chezmoi" ]; then \
+		echo "Initializing chezmoi..."; \
+		chezmoi init; \
 	fi
 	@echo "Applying dotfiles..."
-	# ここで現在の設定をchezmoiに取り込むコマンドを追加することも可能
-	# chezmoi add ~/.zshrc ~/.config/nvim ... 
 	chezmoi apply -v

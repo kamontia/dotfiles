@@ -1,7 +1,7 @@
 # Ghostty Configuration
 
-# Theme
-theme = dark:catppuccin-macchiato,light:catppuccin-latte
+# Theme (Standard built-in names)
+theme = Atom One Dark
 
 # Font
 font-family = "JetBrains Mono Nerd Font"

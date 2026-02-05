@@ -1,0 +1,22 @@
+# "$schema" = 'https://starship.rs/config-schema.json'
+
+# 2行構成にする設定
+format = """
+$custom\
+$all\
+$character
+"""
+
+[character]
+success_symbol = "➜"
+error_symbol = "➜"
+
+[custom.vi_mode]
+# zsh-vi-mode から渡される STARSHIP_VI_MODE を表示
+command = "echo $STARSHIP_VI_MODE | tr '[:lower:]' '[:upper:]'"
+when = "test -n \"$STARSHIP_VI_MODE\""
+format = "[$output](bold blue) "
+style = "bold blue"
+
+[python]
+disabled = true

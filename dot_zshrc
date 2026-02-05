@@ -11,49 +11,17 @@ export PATH="/Users/kamo/.antigravity/antigravity/bin:$PATH"
 
 ### Speed up init by caching eval outputs
 mkdir -p ~/.cache
-# Starship
-if [[ ! -f ~/.cache/starship_init.zsh || "$(command -v starship)" -nt ~/.cache/starship_init.zsh ]]; then
-  starship init zsh > ~/.cache/starship_init.zsh
-  zcompile ~/.cache/starship_init.zsh
-fi
-source ~/.cache/starship_init.zsh
-
-# Mise
-if [[ ! -f ~/.cache/mise_init.zsh || "$(command -v mise)" -nt ~/.cache/mise_init.zsh ]]; then
-  mise activate zsh > ~/.cache/mise_init.zsh
-  zcompile ~/.cache/mise_init.zsh
-fi
-source ~/.cache/mise_init.zsh
-
-# Zoxide
-if [[ ! -f ~/.cache/zoxide_init.zsh || "$(command -v zoxide)" -nt ~/.cache/zoxide_init.zsh ]]; then
-  zoxide init zsh > ~/.cache/zoxide_init.zsh
-  zcompile ~/.cache/zoxide_init.zsh
-fi
-source ~/.cache/zoxide_init.zsh
+for tool in starship mise zoxide; do
+  if [[ ! -f ~/.cache/${tool}_init.zsh || "$(command -v $tool)" -nt ~/.cache/${tool}_init.zsh ]]; then
+    $tool init zsh > ~/.cache/${tool}_init.zsh 2>/dev/null || $tool activate zsh > ~/.cache/${tool}_init.zsh
+    zcompile ~/.cache/${tool}_init.zsh
+  fi
+  source ~/.cache/${tool}_init.zsh
+done
 
 ### For Mac
 typeset -U path PATH
-path=(
-	/opt/homebrew/bin(N-/)
-	/usr/local/bin(N-/)
-	$path
-)
-
-if (( $+commands[sw_vers] )) && (( $+commands[arch] )); then
-	[[ -x /usr/local/bin/brew ]] && alias brew="arch -arch x86_64 /usr/local/bin/brew"
-	alias x64='exec arch -x86_64 /bin/zsh'
-	alias a64='exec arch -arm64e /bin/zsh'
-	switch-arch() {
-		local arch
-		if  [[ "$(uname -m)" == arm64 ]]; then
-			arch=x86_64
-		elif [[ "$(uname -m)" == x86_64 ]]; then
-			arch=arm64e
-		fi
-		exec arch -arch $arch /bin/zsh
-	}
-fi
+path=( /opt/homebrew/bin(N-/) /usr/local/bin(N-/) $path )
 
 ### Aliases
 if (( $+commands[exa] )); then
@@ -72,7 +40,7 @@ fi
 alias g="env"
 alias y='yazi'
 
-### ghq + fzf (Faster list)
+### ghq + fzf
 function ghq-fzf() {
   local src=$(ghq list -p | fzf --layout=reverse --preview "bat --color=always --style=header,grid --line-range :80 {}/(README|readme).*")
   if [[ -n "$src" ]]; then
@@ -82,7 +50,29 @@ function ghq-fzf() {
   zle -R -c
 }
 zle -N ghq-fzf
-bindkey '^]' ghq-fzf 
+
+### ZSH Vi Mode Settings (Define BEFORE loading plugin)
+export ZVM_VI_INSERT_ESCAPE_BINDKEY="jk"
+export ZVM_KEYTIMEOUT=0.3
+export STARSHIP_VI_MODE="INSERT"
+
+# Keybindings hook
+function zvm_after_lazy_keybindings() {
+  # Use native bindkey if zvm_define_keymap is missing
+  bindkey -M viins '^]' ghq-fzf
+  bindkey -M vicmd '^]' ghq-fzf
+}
+
+# Mode selection hook
+function zvm_after_select_vi_mode() {
+  case $ZVM_MODE in
+    $ZVM_MODE_NORMAL)  export STARSHIP_VI_MODE="NORMAL" ;;
+    $ZVM_MODE_INSERT)  export STARSHIP_VI_MODE="INSERT" ;;
+    $ZVM_MODE_VISUAL)  export STARSHIP_VI_MODE="VISUAL" ;;
+    $ZVM_MODE_REPLACE) export STARSHIP_VI_MODE="REPLACE" ;;
+  esac
+  zle reset-prompt
+}
 
 ### Zinit (Plugin Manager)
 ZINIT_HOME="$HOME/.local/share/zinit/zinit.git"
@@ -90,75 +80,32 @@ if [[ ! -f $ZINIT_HOME/zinit.zsh ]]; then
     command mkdir -p "$HOME/.local/share/zinit" && command chmod g-rwX "$HOME/.local/share/zinit"
     command git clone https://github.com/zdharma-continuum/zinit "$ZINIT_HOME"
 fi
-
 source "$ZINIT_HOME/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 
-# Suppress all Zinit messages
 zstyle ':zinit:*' banner 'no'
 
-# Plugins with lazy loading
+# Load ZSH Vi Mode
+zinit light jeffreytse/zsh-vi-mode
+
+# Other plugins with wait
 zinit ice wait'0' lucid; zinit load zdharma-continuum/history-search-multi-word
 zinit ice wait'0' lucid atload'_zsh_autosuggest_start'; zinit light zsh-users/zsh-autosuggestions
 zinit ice wait'0' lucid atinit'zpcompinit; zpcdreplay'; zinit light zdharma-continuum/fast-syntax-highlighting
 
-# FZF integration via Zinit
-zinit ice wait'0' lucid
-zinit snippet /Users/kamo/.fzf/shell/completion.zsh
-zinit ice wait'0' lucid
-zinit snippet /Users/kamo/.fzf/shell/key-bindings.zsh
+# FZF, Bun, GCloud snippets
+zinit ice wait'0' lucid; zinit snippet /Users/kamo/.fzf/shell/completion.zsh
+zinit ice wait'0' lucid; zinit snippet /Users/kamo/.fzf/shell/key-bindings.zsh
+[[ -s "$HOME/.bun/_bun" ]] && { zinit ice wait'0' lucid; zinit snippet "$HOME/.bun/_bun" }
+[[ -f '/Users/kamo/google-cloud-sdk/path.zsh.inc' ]] && { zinit ice wait'0' lucid; zinit snippet '/Users/kamo/google-cloud-sdk/path.zsh.inc' }
+[[ -f '/Users/kamo/google-cloud-sdk/completion.zsh.inc' ]] && { zinit ice wait'1' lucid; zinit snippet '/Users/kamo/google-cloud-sdk/completion.zsh.inc' }
 
-# Bun completions
-if [[ -s "$HOME/.bun/_bun" ]]; then
-    zinit ice wait'0' lucid
-    zinit snippet "$HOME/.bun/_bun"
-fi
-
-### Completions
+### Completions & compinit
 fpath=(/Users/kamo/.docker/completions $fpath)
-
-# Optimize compinit
 autoload -Uz compinit
-if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.m-1) ]]; then
-  compinit -C
-else
-  compinit
-fi
+[[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.m-1) ]] && compinit -C || compinit
 
-### Google Cloud SDK (Lazy load)
-if [[ -f '/Users/kamo/google-cloud-sdk/path.zsh.inc' ]]; then
-    zinit ice wait'0' lucid
-    zinit snippet '/Users/kamo/google-cloud-sdk/path.zsh.inc'
-fi
-if [[ -f '/Users/kamo/google-cloud-sdk/completion.zsh.inc' ]]; then
-    zinit ice wait'1' lucid
-    zinit snippet '/Users/kamo/google-cloud-sdk/completion.zsh.inc'
-fi
-
-### VI Mode Settings (Moved to end to ensure it's not overwritten)
-bindkey -v
-export KEYTIMEOUT=1
-
-# jk to escape
-bindkey -M viins 'jk' vi-cmd-mode
-
-# Change cursor shape for different modes
-function zle-keymap-select {
-  if [[ ${KEYMAP} == vicmd ]]; then
-    echo -ne "\e[2q" # Block cursor
-  else
-    echo -ne "\e[6q" # Beam cursor
-  fi
-}
-zle -N zle-keymap-select
-zle-line-init() {
-    zle -K viins # initiate `vi insert` as default
-    echo -ne "\e[6q"
-}
-zle -N zle-line-init
-
-# Use beam cursor for each new prompt
-preexec() {
-    echo -ne "\e[6q"
-}
+# Final re-bind just in case
+bindkey -M viins '^]' ghq-fzf
+bindkey -M vicmd '^]' ghq-fzf

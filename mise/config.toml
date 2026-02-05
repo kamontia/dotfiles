@@ -1,0 +1,14 @@
+[tools]
+python = "latest"
+neovim = "latest"
+ghq = "latest"
+fzf = "latest"
+# tig = "latest"
+tmux = "latest"
+gh = "latest"
+awscli = "latest"
+bat = "latest"
+deno = "latest"
+
+[settings]
+experimental = true
