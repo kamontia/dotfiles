@@ -1,0 +1,21 @@
+# Yazi Keymap Configuration
+
+[manager]
+keymap = [
+	{ on = [ "j" ], exec = "arrow 1",  desc = "Move down" },
+	{ on = [ "k" ], exec = "arrow -1", desc = "Move up" },
+	{ on = [ "h" ], exec = "leave",    desc = "Go back" },
+	{ on = [ "l" ], exec = "enter",    desc = "Enter" },
+	
+	# jk to escape (close dialogs/input)
+	{ on = [ "j", "k" ], exec = "escape", desc = "Exit visual mode, clear selection, or cancel input" },
+
+	# Vim-like tab switching
+	{ on = [ "g", "t" ], exec = "tab_switch 1 --relative", desc = "Next tab" },
+	{ on = [ "g", "T" ], exec = "tab_switch -1 --relative", desc = "Prev tab" },
+]
+
+[input]
+keymap = [
+	{ on = [ "j", "k" ], exec = "escape", desc = "Go back to normal mode" },
+]

@@ -1,0 +1,28 @@
+// GitUI Key Config (Vim style)
+(
+    open_help: Some(( code: Char('?'), modifiers: "")),
+    
+    move_left: Some(( code: Char('h'), modifiers: "")),
+    move_right: Some(( code: Char('l'), modifiers: "")),
+    move_up: Some(( code: Char('k'), modifiers: "")),
+    move_down: Some(( code: Char('j'), modifiers: "")),
+    
+    popup_up: Some(( code: Char('k'), modifiers: "")),
+    popup_down: Some(( code: Char('j'), modifiers: "")),
+    page_up: Some(( code: Char('b'), modifiers: "CONTROL")),
+    page_down: Some(( code: Char('f'), modifiers: "CONTROL")),
+    home: Some(( code: Char('g'), modifiers: "")),
+    end: Some(( code: Char('G'), modifiers: "SHIFT")),
+    
+    shift_up: Some(( code: Char('K'), modifiers: "SHIFT")),
+    shift_down: Some(( code: Char('J'), modifiers: "SHIFT")),
+
+    edit_file: Some(( code: Char('e'), modifiers: "")),
+    status_reset_item: Some(( code: Char('U'), modifiers: "SHIFT")),
+    status_stage_all: Some(( code: Char('a'), modifiers: "")),
+    status_unstage_all: Some(( code: Char('A'), modifiers: "SHIFT")),
+    main_history: Some(( code: Char('h'), modifiers: "CONTROL")),
+    main_log: Some(( code: Char('l'), modifiers: "CONTROL")),
+    stashing: Some(( code: Char('z'), modifiers: "")),
+    stashes: Some(( code: Char('Z'), modifiers: "SHIFT")),
+)

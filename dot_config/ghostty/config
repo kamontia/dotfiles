@@ -1,0 +1,22 @@
+# Ghostty Configuration
+
+# Theme
+theme = dark:catppuccin-macchiato,light:catppuccin-latte
+
+# Font
+font-family = "JetBrains Mono Nerd Font"
+font-size = 14
+
+# Window
+window-padding-x = 10
+window-padding-y = 10
+window-decoration = true
+macos-option-as-alt = true
+
+# Keybindings
+keybind = super+ctrl+f=toggle_fullscreen
+keybind = super+t=new_tab
+keybind = super+w=close_tab
+keybind = super+h=previous_tab
+keybind = super+l=next_tab
+keybind = super+shift+r=reload_config

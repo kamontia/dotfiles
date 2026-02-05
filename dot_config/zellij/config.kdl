@@ -1,0 +1,37 @@
+// Zellij Configuration (Vim-optimized)
+
+theme "catppuccin-macchiato"
+default_layout "compact"
+pane_frames false
+copy_on_select true
+
+keybinds {
+    // 全てのモードで共通の Vim 移動を許可（Alt+hjkl）
+    shared_except "locked" {
+        bind "Alt h" { MoveFocus "Left"; }
+        bind "Alt j" { MoveFocus "Down"; }
+        bind "Alt k" { MoveFocus "Up"; }
+        bind "Alt l" { MoveFocus "Right"; }
+    }
+
+    // Normal モードでの設定
+    normal {
+        bind "p" { SwitchToMode "Pane"; }
+        bind "t" { SwitchToMode "Tab"; }
+        bind "s" { SwitchToMode "Scroll"; }
+        bind "o" { SwitchToMode "Session"; }
+        bind "q" { Quit; }
+    }
+
+    // 特定の入力モードでの jk エスケープ (Zellij の入力フィールド等)
+    tmux {
+        bind "j" {
+            sequence {
+                Input 'j';
+                // Zellij は jk シーケンスを直接 Esc にするのは難しいため、
+                // モード切り替えキー（Ctrl+b 等）を前提にするのが一般的ですが、
+                // ここでは Vim 移動に注力します。
+            }
+        }
+    }
+}

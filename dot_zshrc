@@ -1,9 +1,65 @@
-eval "$(starship init zsh)"
+# Compile zshrc if modified
+if [[ ~/.zshrc -nt ~/.zshrc.zwc ]]; then
+  zcompile ~/.zshrc
+fi
 
-if [[ $(command -v exa) ]]; then
+### Environment variables
+export PATH="/Users/kamo/.local/bin:$PATH"
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+export PATH="/Users/kamo/.antigravity/antigravity/bin:$PATH"
+
+### Speed up init by caching eval outputs
+mkdir -p ~/.cache
+# Starship
+if [[ ! -f ~/.cache/starship_init.zsh || "$(command -v starship)" -nt ~/.cache/starship_init.zsh ]]; then
+  starship init zsh > ~/.cache/starship_init.zsh
+  zcompile ~/.cache/starship_init.zsh
+fi
+source ~/.cache/starship_init.zsh
+
+# Mise
+if [[ ! -f ~/.cache/mise_init.zsh || "$(command -v mise)" -nt ~/.cache/mise_init.zsh ]]; then
+  mise activate zsh > ~/.cache/mise_init.zsh
+  zcompile ~/.cache/mise_init.zsh
+fi
+source ~/.cache/mise_init.zsh
+
+# Zoxide
+if [[ ! -f ~/.cache/zoxide_init.zsh || "$(command -v zoxide)" -nt ~/.cache/zoxide_init.zsh ]]; then
+  zoxide init zsh > ~/.cache/zoxide_init.zsh
+  zcompile ~/.cache/zoxide_init.zsh
+fi
+source ~/.cache/zoxide_init.zsh
+
+### For Mac
+typeset -U path PATH
+path=(
+	/opt/homebrew/bin(N-/)
+	/usr/local/bin(N-/)
+	$path
+)
+
+if (( $+commands[sw_vers] )) && (( $+commands[arch] )); then
+	[[ -x /usr/local/bin/brew ]] && alias brew="arch -arch x86_64 /usr/local/bin/brew"
+	alias x64='exec arch -x86_64 /bin/zsh'
+	alias a64='exec arch -arm64e /bin/zsh'
+	switch-arch() {
+		local arch
+		if  [[ "$(uname -m)" == arm64 ]]; then
+			arch=x86_64
+		elif [[ "$(uname -m)" == x86_64 ]]; then
+			arch=arm64e
+		fi
+		exec arch -arch $arch /bin/zsh
+	}
+fi
+
+### Aliases
+if (( $+commands[exa] )); then
   alias e='exa --icons --git'
-  alias l=e
-  alias ls=e
+  alias l='clear && exa --icons --git'
+  alias ls='exa --icons --git'
   alias ea='exa -a --icons --git'
   alias la=ea
   alias ee='exa -aahl --icons --git'
@@ -12,19 +68,14 @@ if [[ $(command -v exa) ]]; then
   alias lt=et
   alias eta='exa -T -a -I "node_modules|.git|.cache" --color=always --icons | less -r'
   alias lta=eta
-  alias l='clear && ls'
 fi
+alias g="env"
 
-if [ -e $HOME/.asdf/asdf.sh ]
-then
-  . $HOME/.asdf/asdf.sh
-fi
-
-### cd ghq project
+### ghq + fzf (Faster list)
 function ghq-fzf() {
-  local src=$(ghq list | fzf --layout=reverse --preview "bat --color=always --style=header,grid --line-range :80 $(ghq root)/{}/(README|readme).*")
-  if [ -n "$src" ]; then
-    BUFFER="cd $(ghq root)/$src"
+  local src=$(ghq list -p | fzf --layout=reverse --preview "bat --color=always --style=header,grid --line-range :80 {}/(README|readme).*")
+  if [[ -n "$src" ]]; then
+    BUFFER="cd $src"
     zle accept-line
   fi
   zle -R -c
@@ -32,25 +83,54 @@ function ghq-fzf() {
 zle -N ghq-fzf
 bindkey '^]' ghq-fzf 
 
-### Added by Zinit's installer
-if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
-    print -P "%F{33} %F{220}Installing %F{33}ZDHARMA-CONTINUUM%F{220} Initiative Plugin Manager (%F{33}zdharma-continuum/zinit%F{220})…%f"
+### Zinit (Plugin Manager)
+ZINIT_HOME="$HOME/.local/share/zinit/zinit.git"
+if [[ ! -f $ZINIT_HOME/zinit.zsh ]]; then
     command mkdir -p "$HOME/.local/share/zinit" && command chmod g-rwX "$HOME/.local/share/zinit"
-    command git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" && \
-        print -P "%F{33} %F{34}Installation successful.%f%b" || \
-        print -P "%F{160} The clone has failed.%f%b"
+    command git clone https://github.com/zdharma-continuum/zinit "$ZINIT_HOME"
 fi
 
-source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
+source "$ZINIT_HOME/zinit.zsh"
 autoload -Uz _zinit
 (( ${+_comps} )) && _comps[zinit]=_zinit
 
-# Plugin history-search-multi-word loaded with investigating.
-zinit load zdharma-continuum/history-search-multi-word
-# Two regular plugins loaded without investigating.
-zinit light zsh-users/zsh-autosuggestions
-zinit light zdharma-continuum/fast-syntax-highlighting
+# Suppress all Zinit messages
+zstyle ':zinit:*' banner 'no'
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# Plugins with lazy loading
+zinit ice wait'0' lucid; zinit load zdharma-continuum/history-search-multi-word
+zinit ice wait'0' lucid atload'_zsh_autosuggest_start'; zinit light zsh-users/zsh-autosuggestions
+zinit ice wait'0' lucid atinit'zpcompinit; zpcdreplay'; zinit light zdharma-continuum/fast-syntax-highlighting
 
-alias g="env"
+# FZF integration via Zinit (More efficient than sourcing .fzf.zsh)
+zinit ice wait'0' lucid
+zinit snippet /Users/kamo/.fzf/shell/completion.zsh
+zinit ice wait'0' lucid
+zinit snippet /Users/kamo/.fzf/shell/key-bindings.zsh
+
+# Bun completions
+if [[ -s "$HOME/.bun/_bun" ]]; then
+    zinit ice wait'0' lucid
+    zinit snippet "$HOME/.bun/_bun"
+fi
+
+### Completions
+fpath=(/Users/kamo/.docker/completions $fpath)
+
+# Optimize compinit
+autoload -Uz compinit
+if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.m-1) ]]; then
+  compinit -C
+else
+  compinit
+fi
+
+### Google Cloud SDK (Lazy load both path and completion)
+if [[ -f '/Users/kamo/google-cloud-sdk/path.zsh.inc' ]]; then
+    zinit ice wait'0' lucid
+    zinit snippet '/Users/kamo/google-cloud-sdk/path.zsh.inc'
+fi
+if [[ -f '/Users/kamo/google-cloud-sdk/completion.zsh.inc' ]]; then
+    zinit ice wait'1' lucid
+    zinit snippet '/Users/kamo/google-cloud-sdk/completion.zsh.inc'
+fialias y='yazi'
