@@ -1,48 +1,29 @@
 #!/bin/bash
+set -euo pipefail
 
-## Manage dotfile
-# chezmoi
-sh -c "$(curl -fsLS git.io/chezmoi)" -- init --apply kamontia@gmail.com
+## Dotfile Management
+# chezmoi (this script is run by chezmoi init)
 
-## Terminal
-# Starship
-sh -c "$(curl -fsSL https://starship.rs/install.sh)"
+## Homebrew
+if ! command -v brew &>/dev/null; then
+  echo "Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
 
-# Get Font
+## Zinit (Zsh plugin manager)
+ZINIT_HOME="$HOME/.local/share/zinit/zinit.git"
+if [[ ! -d "$ZINIT_HOME" ]]; then
+  echo "Installing Zinit..."
+  mkdir -p "$(dirname "$ZINIT_HOME")"
+  git clone https://github.com/zdharma-continuum/zinit "$ZINIT_HOME"
+fi
 
-wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/UbuntuMono.zip
-wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/JetBrainsMono.zip
+## fzf
+if [[ ! -d "$HOME/.fzf" ]]; then
+  echo "Installing fzf..."
+  git clone --depth 1 https://github.com/junegunn/fzf.git "$HOME/.fzf"
+  "$HOME/.fzf/install" --key-bindings --completion --no-update-rc
+fi
 
-mkdir -p "~/.fonts/truetype/"
-cp -rp UbuntuMono       ~/.fonts/truetype/
-cp -rp JetBrainsMono    ~/.fonts/truetype/
-
-
-
-
-# Zinit
-sh -c "$(curl -fsSL https://git.io/zinit-install)"
-
-## Tools
-# tig,tmux
-
-sudo apt install tmux tig
-
-git clone https://github.com/x-motemen/ghq .
-make install
-
-
-
-
-# ghq
-git clone https://github.com/x-motemen/ghq ~/.ghq
-cd ~/.ghq
-make install
-
-# fzf
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install
-
-# asdf
-git clone https://github.com/asdf-vm/asdf.git ~/.asdf
-
+echo "Setup complete!"

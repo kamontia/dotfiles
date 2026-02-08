@@ -4,10 +4,10 @@ if [[ ~/.zshrc -nt ~/.zshrc.zwc ]]; then
 fi
 
 ### Environment variables
-export PATH="/Users/kamo/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
-export PATH="/Users/kamo/.antigravity/antigravity/bin:$PATH"
+export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
 
 ### Speed up init by caching eval outputs
 mkdir -p ~/.cache
@@ -24,20 +24,19 @@ typeset -U path PATH
 path=( /opt/homebrew/bin(N-/) /usr/local/bin(N-/) $path )
 
 ### Aliases
-if (( $+commands[exa] )); then
-  alias e='exa --icons --git'
-  alias l='clear && exa --icons --git'
-  alias ls='exa --icons --git'
-  alias ea='exa -a --icons --git'
+if (( $+commands[eza] )); then
+  alias e='eza --icons --git'
+  alias l='clear && eza --icons --git'
+  alias ls='eza --icons --git'
+  alias ea='eza -a --icons --git'
   alias la=ea
-  alias ee='exa -aahl --icons --git'
+  alias ee='eza -aahl --icons --git'
   alias ll=ee
-  alias et='exa -T -L 3 -a -I "node_modules|.git|.cache" --icons'
+  alias et='eza -T -L 3 -a -I "node_modules|.git|.cache" --icons'
   alias lt=et
-  alias eta='exa -T -a -I "node_modules|.git|.cache" --color=always --icons | less -r'
+  alias eta='eza -T -a -I "node_modules|.git|.cache" --color=always --icons | less -r'
   alias lta=eta
 fi
-alias g="env"
 alias y='yazi'
 
 ### ghq + fzf
@@ -95,17 +94,17 @@ zinit ice wait'0' lucid atload'_zsh_autosuggest_start'; zinit light zsh-users/zs
 zinit ice wait'0' lucid atinit'zpcompinit; zpcdreplay'; zinit light zdharma-continuum/fast-syntax-highlighting
 
 # FZF, Bun, GCloud snippets
-zinit ice wait'0' lucid; zinit snippet /Users/kamo/.fzf/shell/completion.zsh
-zinit ice wait'0' lucid; zinit snippet /Users/kamo/.fzf/shell/key-bindings.zsh
+zinit ice wait'0' lucid; zinit snippet $HOME/.fzf/shell/completion.zsh
+zinit ice wait'0' lucid; zinit snippet $HOME/.fzf/shell/key-bindings.zsh
 [[ -s "$HOME/.bun/_bun" ]] && { zinit ice wait'0' lucid; zinit snippet "$HOME/.bun/_bun" }
-[[ -f '/Users/kamo/google-cloud-sdk/path.zsh.inc' ]] && { zinit ice wait'0' lucid; zinit snippet '/Users/kamo/google-cloud-sdk/path.zsh.inc' }
-[[ -f '/Users/kamo/google-cloud-sdk/completion.zsh.inc' ]] && { zinit ice wait'1' lucid; zinit snippet '/Users/kamo/google-cloud-sdk/completion.zsh.inc' }
+[[ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]] && { zinit ice wait'0' lucid; zinit snippet "$HOME/google-cloud-sdk/path.zsh.inc" }
+[[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]] && { zinit ice wait'1' lucid; zinit snippet "$HOME/google-cloud-sdk/completion.zsh.inc" }
 
 ### Completions & compinit
-fpath=(/Users/kamo/.docker/completions $fpath)
+fpath=($HOME/.docker/completions $fpath)
 autoload -Uz compinit
 [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.m-1) ]] && compinit -C || compinit
 
 # Final re-bind just in case
 bindkey -M viins '^]' ghq-fzf
-bindkey -M vicmd '^]' ghq-fzfalias y='yazi'
+bindkey -M vicmd '^]' ghq-fzf

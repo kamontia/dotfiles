@@ -5,14 +5,16 @@ pane_frames true
 copy_on_select true
 
 keybinds {
-    // Normalモードで確実に動くように明示
-    normal {
+    // 全てのモードで共通（locked以外）
+    shared_except "locked" {
         bind "Alt h" { MoveFocus "Left"; }
         bind "Alt j" { MoveFocus "Down"; }
         bind "Alt k" { MoveFocus "Up"; }
         bind "Alt l" { MoveFocus "Right"; }
         bind "Alt f" { ToggleFocusFullscreen; }
-        
+    }
+
+    normal {
         bind "Ctrl 1" { GoToTab 1; }
         bind "Ctrl 2" { GoToTab 2; }
         bind "Ctrl 3" { GoToTab 3; }
@@ -22,13 +24,5 @@ keybinds {
         bind "Ctrl 7" { GoToTab 7; }
         bind "Ctrl 8" { GoToTab 8; }
         bind "Ctrl 9" { GoToTab 9; }
-    }
-    
-    // 全てのモードで共通（locked以外）
-    shared_except "locked" {
-        bind "Alt h" { MoveFocus "Left"; }
-        bind "Alt j" { MoveFocus "Down"; }
-        bind "Alt k" { MoveFocus "Up"; }
-        bind "Alt l" { MoveFocus "Right"; }
     }
 }
