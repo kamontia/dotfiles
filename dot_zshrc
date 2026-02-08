@@ -13,7 +13,11 @@ export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
 mkdir -p ~/.cache
 for tool in starship mise zoxide; do
   if [[ ! -f ~/.cache/${tool}_init.zsh || "$(command -v $tool)" -nt ~/.cache/${tool}_init.zsh ]]; then
-    $tool init zsh > ~/.cache/${tool}_init.zsh 2>/dev/null || $tool activate zsh > ~/.cache/${tool}_init.zsh
+    if [[ $tool == "zoxide" ]]; then
+      $tool init zsh --cmd cd > ~/.cache/${tool}_init.zsh
+    else
+      $tool init zsh > ~/.cache/${tool}_init.zsh 2>/dev/null || $tool activate zsh > ~/.cache/${tool}_init.zsh
+    fi
     zcompile ~/.cache/${tool}_init.zsh
   fi
   source ~/.cache/${tool}_init.zsh
