@@ -17,3 +17,21 @@ keymap.set("n", "<Esc>", "<cmd>noh<CR>")
 
 -- jk to escape
 keymap.set("i", "jk", "<Esc>")
+
+-- Neo-tree
+keymap.set("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "Toggle Explorer" })
+
+-- gitui
+keymap.set("n", "<leader>gg", "<cmd>Gitui<cr>", { desc = "Open gitui" })
+
+-- Format
+keymap.set("n", "<leader>cf", function()
+  require("conform").format({ async = true, lsp_fallback = true })
+end, { desc = "Format buffer" })
+
+-- Trouble
+keymap.set("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Toggle Trouble" })
+
+-- Diagnostics navigation
+keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Prev diagnostic" })
+keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
