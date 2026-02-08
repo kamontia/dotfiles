@@ -19,10 +19,10 @@ autoload -Uz compinit
 # ~/.zcompdump ファイルのパーミッションが安全でない場合のエラーを抑制し(-i)、
 # ダンプファイルの場所を明示的に指定します(-d)。
 # 1日に1回だけ zcompdump を再生成するようにする
-if [ $(date +%j) != $(date +%j -r ~/.zcompdump 2>/dev/null) ]; then
-  compinit -i -d ~/.zcompdump
-else
+if [[ -f ~/.zcompdump && $(date +%j) == $(stat -f '%Sm' -t '%j' ~/.zcompdump 2>/dev/null) ]]; then
   compinit -C -i -d ~/.zcompdump # キャッシュを使う
+else
+  compinit -i -d ~/.zcompdump
 fi
 
 # 3. mise (旧 rtx) バージョンマネージャー と 必須ツール管理
@@ -218,6 +218,11 @@ setopt correct_all          # 全ての引数に対してtypo修正を試みる 
 
 # 補完スタイル
 zstyle ':completion:*:default' menu select=1
+
+# 11. zoxide (スマートcd)
+if command -v zoxide &> /dev/null; then
+  eval "$(zoxide init zsh --cmd cd)"
+fi
 
 # --- ここまで ---
 # ローカル設定などがあれば読み込む
