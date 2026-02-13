@@ -18,8 +18,14 @@ keymap.set("n", "<Esc>", "<cmd>noh<CR>")
 -- jk to escape
 keymap.set("i", "jk", "<Esc>")
 
--- Neo-tree
-keymap.set("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "Toggle Explorer" })
+-- Yazi
+keymap.set("n", "<leader>e", "<cmd>Yazi<cr>", { desc = "Open Yazi" })
+
+-- Zoxide
+keymap.set("n", "<leader>fz", "<cmd>Telescope zoxide list<cr>", { desc = "Zoxide directories" })
+
+-- TODO comments
+keymap.set("n", "<leader>ft", "<cmd>TodoTelescope<cr>", { desc = "TODO list" })
 
 -- gitui
 keymap.set("n", "<leader>gg", "<cmd>Gitui<cr>", { desc = "Open gitui" })

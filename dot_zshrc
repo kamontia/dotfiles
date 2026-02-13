@@ -11,17 +11,35 @@ export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
 
 ### Speed up init by caching eval outputs
 mkdir -p ~/.cache
-for tool in starship mise zoxide; do
-  if [[ ! -f ~/.cache/${tool}_init.zsh || "$(command -v $tool)" -nt ~/.cache/${tool}_init.zsh ]]; then
+for tool in starship zoxide; do
+  cache_file=~/.cache/${tool}_init.zsh
+  if [[ ! -f $cache_file.zwc ]] || [[ "$(command -v $tool)" -nt $cache_file.zwc ]]; then
     if [[ $tool == "zoxide" ]]; then
-      $tool init zsh --cmd cd > ~/.cache/${tool}_init.zsh
+      $tool init zsh --cmd j > $cache_file
     else
-      $tool init zsh > ~/.cache/${tool}_init.zsh 2>/dev/null || $tool activate zsh > ~/.cache/${tool}_init.zsh
+      $tool init zsh > $cache_file 2>/dev/null
     fi
-    zcompile ~/.cache/${tool}_init.zsh
+    zcompile $cache_file
   fi
-  source ~/.cache/${tool}_init.zsh
+  source $cache_file
 done
+unset cache_file
+
+# zoxide add runs synchronously (~95ms). Override to run in background.
+function __zoxide_hook() {
+  \command zoxide add -- "$(__zoxide_pwd)" &!
+}
+
+### mise: no hooks, just apply environment once at startup
+# Hooks are disabled for speed. Use `mise shell` to switch versions manually.
+# Cache the hook-env output so tools (node, go, etc.) are on PATH immediately.
+{
+  local mise_env_cache=~/.cache/mise_hook_env.zsh
+  if [[ ! -f $mise_env_cache ]] || [[ "$(command -v mise)" -nt $mise_env_cache ]]; then
+    /Users/kamohara/.local/bin/mise hook-env -s zsh > $mise_env_cache 2>/dev/null
+  fi
+  [[ -s $mise_env_cache ]] && source $mise_env_cache
+}
 
 ### For Mac
 typeset -U path PATH
@@ -42,6 +60,20 @@ if (( $+commands[eza] )); then
   alias lta=eta
 fi
 alias y='yazi'
+
+### Claude Code: bedrock by default, "claude o" for OAuth
+function claude() {
+  if [[ "$1" == "o" ]]; then
+    shift
+    command claude "$@"
+  else
+    CLAUDE_CODE_USE_BEDROCK=true \
+    AWS_PROFILE=dev \
+    AWS_REGION=ap-northeast-1 \
+    ANTHROPIC_MODEL="arn:aws:bedrock:ap-northeast-1:339712865033:application-inference-profile/47mqf5tqsu9g" \
+    command claude "$@"
+  fi
+}
 
 ### ghq + fzf
 function ghq-fzf() {
@@ -98,17 +130,19 @@ zinit ice wait'0' lucid atload'_zsh_autosuggest_start'; zinit light zsh-users/zs
 zinit ice wait'0' lucid atinit'zpcompinit; zpcdreplay'; zinit light zdharma-continuum/fast-syntax-highlighting
 
 # FZF, Bun, GCloud snippets
-zinit ice wait'0' lucid; zinit snippet $HOME/.fzf/shell/completion.zsh
-zinit ice wait'0' lucid; zinit snippet $HOME/.fzf/shell/key-bindings.zsh
+zinit ice wait'0' lucid; zinit snippet /opt/homebrew/opt/fzf/shell/completion.zsh
+zinit ice wait'0' lucid; zinit snippet /opt/homebrew/opt/fzf/shell/key-bindings.zsh
 [[ -s "$HOME/.bun/_bun" ]] && { zinit ice wait'0' lucid; zinit snippet "$HOME/.bun/_bun" }
 [[ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]] && { zinit ice wait'0' lucid; zinit snippet "$HOME/google-cloud-sdk/path.zsh.inc" }
 [[ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]] && { zinit ice wait'1' lucid; zinit snippet "$HOME/google-cloud-sdk/completion.zsh.inc" }
 
-### Completions & compinit
+### Completions (compinit is handled by zinit's zpcompinit above)
 fpath=($HOME/.docker/completions $fpath)
-autoload -Uz compinit
-[[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.m-1) ]] && compinit -C || compinit
 
 # Final re-bind just in case
 bindkey -M viins '^]' ghq-fzf
 bindkey -M vicmd '^]' ghq-fzf
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/kamohara/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)

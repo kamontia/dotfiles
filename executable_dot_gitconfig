@@ -1,6 +1,6 @@
 [user]
 	name = Tatsuya Kamohara
-	email = 17017563+kamontia@users.noreply.github.com
+	email = tatsuya_kamohara@kyudentd.co.jp 
 
 [ghq]
 	root = ~/repo/src
@@ -19,3 +19,5 @@
 
 [color]
 	ui = auto
+[push]
+	autoSetupRemote = true
