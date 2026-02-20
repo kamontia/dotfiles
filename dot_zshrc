@@ -30,16 +30,8 @@ function __zoxide_hook() {
   \command zoxide add -- "$(__zoxide_pwd)" &!
 }
 
-### mise: no hooks, just apply environment once at startup
-# Hooks are disabled for speed. Use `mise shell` to switch versions manually.
-# Cache the hook-env output so tools (node, go, etc.) are on PATH immediately.
-{
-  local mise_env_cache=~/.cache/mise_hook_env.zsh
-  if [[ ! -f $mise_env_cache ]] || [[ "$(command -v mise)" -nt $mise_env_cache ]]; then
-    /Users/kamohara/.local/bin/mise hook-env -s zsh > $mise_env_cache 2>/dev/null
-  fi
-  [[ -s $mise_env_cache ]] && source $mise_env_cache
-}
+### mise
+eval "$(mise activate zsh)"
 
 ### For Mac
 typeset -U path PATH
