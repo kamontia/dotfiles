@@ -131,6 +131,10 @@ zinit ice wait'0' lucid; zinit snippet /opt/homebrew/opt/fzf/shell/key-bindings.
 ### Completions (compinit is handled by zinit's zpcompinit above)
 fpath=($HOME/.docker/completions $fpath)
 
+### Completion menu highlight
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+
 # Final re-bind just in case
 bindkey -M viins '^]' ghq-fzf
 bindkey -M vicmd '^]' ghq-fzf
