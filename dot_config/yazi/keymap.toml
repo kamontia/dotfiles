@@ -2,20 +2,27 @@
 
 [manager]
 keymap = [
-	{ on = [ "j" ], exec = "arrow 1",  desc = "Move down" },
-	{ on = [ "k" ], exec = "arrow -1", desc = "Move up" },
-	{ on = [ "h" ], exec = "leave",    desc = "Go back" },
-	{ on = [ "l" ], exec = "enter",    desc = "Enter" },
+	{ on = [ "j" ], run = "arrow 1",  desc = "Move down" },
+	{ on = [ "k" ], run = "arrow -1", desc = "Move up" },
+	{ on = [ "h" ], run = "leave",    desc = "Go back" },
+	{ on = [ "l" ], run = "enter",    desc = "Enter" },
 	
 	# jk to escape (close dialogs/input)
-	{ on = [ "j", "k" ], exec = "escape", desc = "Exit visual mode, clear selection, or cancel input" },
+	{ on = [ "j", "k" ], run = "escape", desc = "Exit visual mode, clear selection, or cancel input" },
+	{ on = [ "<Esc>" ],  run = "escape --filter", desc = "Cancel filter" },
+	{ on = [ "<C-[>" ], run = "escape --filter", desc = "Cancel filter (Ctrl+[)" },
 
 	# Vim-like tab switching
-	{ on = [ "g", "t" ], exec = "tab_switch 1 --relative", desc = "Next tab" },
-	{ on = [ "g", "T" ], exec = "tab_switch -1 --relative", desc = "Prev tab" },
+	{ on = [ "g", "t" ], run = "tab_switch 1 --relative", desc = "Next tab" },
+	{ on = [ "g", "T" ], run = "tab_switch -1 --relative", desc = "Prev tab" },
 ]
 
 [input]
 keymap = [
-	{ on = [ "j", "k" ], exec = "escape", desc = "Go back to normal mode" },
+	{ on = [ "j", "k" ],   run = "escape",            desc = "Go back to normal mode" },
+	{ on = [ "<Backspace>" ], run = "backspace",       desc = "Delete character before cursor" },
+	{ on = [ "<Delete>" ],    run = "backspace --under", desc = "Delete character under cursor" },
+	{ on = [ "<C-u>" ],       run = "kill-line",       desc = "Delete to start of line" },
+	{ on = [ "<C-k>" ],       run = "kill-line --under", desc = "Delete to end of line" },
+	{ on = [ "<Esc>" ],       run = "close",           desc = "Cancel filter" },
 ]

@@ -21,4 +21,10 @@ return {
     dependencies = { "nvim-lua/plenary.nvim" },
     opts = {},
   },
+  {
+    "famiu/bufdelete.nvim",
+    keys = {
+      { "<leader>bd", "<cmd>Bdelete<cr>", desc = "Close buffer (keep window)" },
+    },
+  },
 }

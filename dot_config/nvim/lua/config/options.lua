@@ -17,3 +17,9 @@ opt.signcolumn = "yes"
 opt.clipboard = "unnamedplus"
 opt.updatetime = 250
 opt.timeoutlen = 300
+
+-- nvim-ufo (fold)
+opt.foldcolumn = "1"
+opt.foldlevel = 99
+opt.foldlevelstart = 99
+opt.foldenable = true

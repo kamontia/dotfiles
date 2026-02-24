@@ -17,7 +17,7 @@ cache_dir       = ""
 
 [opener]
 edit = [
-	{ exec = 'nvim "$@"', block = true, desc = "Edit" },
+	{ run = 'nvim "$@"', block = true, desc = "Edit" },
 ]
 
 [open]

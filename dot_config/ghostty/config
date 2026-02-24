@@ -21,3 +21,6 @@ keybind = super+w=close_tab
 keybind = super+h=previous_tab
 keybind = super+l=next_tab
 keybind = super+shift+r=reload_config
+keybind = super+b=csi:98;9u
+keybind = super+shift+b=csi:66;9u
+keybind = super+e=csi:101;9u
