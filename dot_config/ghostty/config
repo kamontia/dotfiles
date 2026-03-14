@@ -1,10 +1,12 @@
 # Ghostty Configuration
 
 # Theme (Standard built-in names)
+# theme = One Half
 theme = Atom One Dark
 
+
 # Font
-font-family = "JetBrains Mono Nerd Font"
+font-family = "JetBrainsMono Nerd Font"
 font-codepoint-map = U+3000-U+9FFF,U+F900-U+FAFF,U+FF00-U+FFEF=Hiragino Sans W5
 font-size = 14
 
@@ -13,6 +15,8 @@ window-padding-x = 10
 window-padding-y = 10
 window-decoration = true
 macos-option-as-alt = true
+background-opacity = 0.90
+background-blur-radius = 0
 
 # Keybindings
 keybind = super+ctrl+f=toggle_fullscreen
