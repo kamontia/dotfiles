@@ -1,0 +1,15 @@
+bind main    R !git rebase -i %(commit)
+bind diff    R !git rebase -i %(commit)
+#set diff-view = id,author,date,changes,title
+set main-view = line-number:no,interval=5 id:yes date:default,format="%Y-%m-%d" author:full commit-title:yes,graph,refs,overflow=no
+
+bind blob e | sh -c "vim - < /dev/stdin"
+bind generic y @sh -c "echo %(commit) | pbcopy"
+
+# genericビュー (メインログ、diffなど) で 'P' キーを押したとき、
+# カーソルが指すファイルのパスをクリップボードにコピーする
+bind generic P @sh -c "echo %(file) | pbcopy"
+
+# treeビュー (ファイル構造表示) で 'P' キーを押したとき、
+# カーソルが指すファイル/ディレクトリのパスをクリップボードにコピーする
+bind tree P @sh -c "echo %(path) | pbcopy"
