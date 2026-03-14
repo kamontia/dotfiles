@@ -41,12 +41,22 @@ keymap.set("n", "<leader>ft", "<cmd>TodoTelescope<cr>", { desc = "TODO list" })
 -- ターミナル
 keymap.set("n", "<leader>th", "<cmd>split | terminal<cr>", { desc = "Terminal (horizontal)" })
 keymap.set("n", "<leader>tv", "<cmd>vsplit | terminal<cr>", { desc = "Terminal (vertical)" })
-keymap.set("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
+keymap.set("t", "<Esc>", function()
+  local buf_name = vim.api.nvim_buf_get_name(0)
+  if buf_name:find("lazygit") then
+    return "<Esc>"
+  end
+  return "<C-\\><C-n>"
+end, { expr = true, desc = "Exit terminal mode (passthrough in lazygit)" })
 
 -- Format
 keymap.set("n", "<leader>cf", function()
-  require("conform").format({ async = true, lsp_fallback = true })
+  require("conform").format({ async = true, lsp_format = "fallback" })
 end, { desc = "Format buffer" })
+
+-- Bufferline
+keymap.set("n", "<S-h>", "<cmd>BufferLineCyclePrev<cr>", { desc = "Prev buffer" })
+keymap.set("n", "<S-l>", "<cmd>BufferLineCycleNext<cr>", { desc = "Next buffer" })
 
 -- Trouble
 keymap.set("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Toggle Trouble" })

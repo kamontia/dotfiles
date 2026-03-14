@@ -4,7 +4,7 @@ return {
     opts = {
       format_on_save = {
         timeout_ms = 500,
-        lsp_fallback = true,
+        lsp_format = "fallback",
       },
       formatters_by_ft = {
         javascript = { "prettier" },
@@ -33,7 +33,7 @@ return {
         typescriptreact = { "eslint" },
         python = { "ruff" },
       }
-      vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+      vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave" }, {
         callback = function()
           lint.try_lint()
         end,

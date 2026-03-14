@@ -91,5 +91,16 @@ return {
     keys = {
       { "<leader>gg", "<cmd>LazyGit<cr>", desc = "Open LazyGit" },
     },
+    config = function()
+      vim.g.lazygit_config_file_path = {
+        vim.fn.expand("$HOME/Library/Application Support/lazygit/config.yml"),
+      }
+      -- Neovim内から起動されるプロセス用に環境変数をセット
+      vim.fn.setenv("LANG", "ja_JP.UTF-8")
+      vim.fn.setenv("LC_ALL", "ja_JP.UTF-8")
+      -- Neovim内では nvr を使い、入れ子を回避
+      vim.fn.setenv("EDITOR", "nvr --remote-wait")
+      vim.fn.setenv("GIT_EDITOR", "nvr --remote-wait")
+    end,
   },
 }

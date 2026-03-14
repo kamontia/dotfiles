@@ -21,3 +21,18 @@
 	ui = auto
 [push]
 	autoSetupRemote = true
+[i18n]
+	commitEncoding = utf-8
+	logOutputEncoding = utf-8
+[core]
+	quotepath = false
+	pager = less -R
+	excludesFile = /Users/kamohara/.gitignore_global
+[gui]
+	encoding = utf-8
+[diff]
+	tool = meld
+[mergetool "meld"]
+	path = /opt/homebrew/bin/meld
+[difftool]
+	prompt = false

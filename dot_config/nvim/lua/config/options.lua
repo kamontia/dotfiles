@@ -1,6 +1,11 @@
 -- Neovim options
 local opt = vim.opt
 
+-- Encoding settings for Japanese
+opt.encoding = "utf-8"
+opt.fileencoding = "utf-8"
+opt.fileencodings = "utf-8,ucs-bom,sjis,euc-jp,latin1"
+
 opt.number = true
 opt.relativenumber = true
 opt.splitbelow = true

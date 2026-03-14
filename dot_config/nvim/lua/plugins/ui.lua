@@ -7,6 +7,11 @@ return {
         theme = "tokyonight",
         globalstatus = true, -- VSCodeのように1本のステータスバー
       },
+      sections = {
+        lualine_c = {
+          { "filename", path = 3 }, -- プロジェクトルート(LSP/Git root)からの相対パス
+        },
+      },
     },
   },
   {

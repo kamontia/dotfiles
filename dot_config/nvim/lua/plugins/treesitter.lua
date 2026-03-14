@@ -7,10 +7,6 @@ return {
       "nvim-treesitter/nvim-treesitter-textobjects",
     },
     config = function()
-      local install = require("nvim-treesitter.install")
-      install.install({
-        "lua", "vim", "vimdoc", "javascript", "typescript", "python", "go"
-      })
       -- highlight
       vim.api.nvim_create_autocmd("FileType", {
         callback = function()
@@ -36,8 +32,8 @@ return {
       -- move
       vim.keymap.set("n", "]f", function() move.goto_next_start("@function.outer", "textobjects") end, { desc = "Next function" })
       vim.keymap.set("n", "[f", function() move.goto_previous_start("@function.outer", "textobjects") end, { desc = "Prev function" })
-      vim.keymap.set("n", "]c", function() move.goto_next_start("@class.outer", "textobjects") end, { desc = "Next class" })
-      vim.keymap.set("n", "[c", function() move.goto_previous_start("@class.outer", "textobjects") end, { desc = "Prev class" })
+      vim.keymap.set("n", "]C", function() move.goto_next_start("@class.outer", "textobjects") end, { desc = "Next class" })
+      vim.keymap.set("n", "[C", function() move.goto_previous_start("@class.outer", "textobjects") end, { desc = "Prev class" })
     end,
   },
 }
