@@ -1,18 +1,20 @@
 return {
-  "nvim-telescope/telescope.nvim",
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-    { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
-    "jvgrootveld/telescope-zoxide",
-  },
-  config = function()
-    local telescope = require("telescope")
-    telescope.setup({
-      extensions = {
-        fzf = {},
+  {
+    "nvim-telescope/telescope.nvim",
+    opts = {
+      defaults = {
+        layout_strategy = "center",
+        layout_config = {
+          center = {
+            width = 0.8,
+            height = 0.6,
+            preview_cutoff = 40,
+            prompt_position = "top",
+          },
+        },
+        sorting_strategy = "ascending",
+        border = true,
       },
-    })
-    telescope.load_extension("fzf")
-    telescope.load_extension("zoxide")
-  end,
+    },
+  },
 }

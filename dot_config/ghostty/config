@@ -15,7 +15,7 @@ window-padding-x = 10
 window-padding-y = 10
 window-decoration = true
 macos-option-as-alt = true
-background-opacity = 0.90
+background-opacity = 0.95
 background-blur-radius = 0
 
 # Keybindings
@@ -28,3 +28,4 @@ keybind = super+shift+r=reload_config
 keybind = super+b=csi:98;9u
 keybind = super+shift+b=csi:66;9u
 keybind = super+e=csi:101;9u
+keybind = super+d=unbind

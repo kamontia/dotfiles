@@ -15,7 +15,7 @@
 	have = branch --contains
 
 [interactive]
-	diffFilter = diff-highlight
+	diffFilter = delta --color-only
 
 [color]
 	ui = auto
@@ -26,7 +26,7 @@
 	logOutputEncoding = utf-8
 [core]
 	quotepath = false
-	pager = less -R
+	pager = delta
 	excludesFile = /Users/kamohara/.gitignore_global
 [gui]
 	encoding = utf-8
@@ -36,3 +36,15 @@
 	path = /opt/homebrew/bin/meld
 [difftool]
 	prompt = false
+
+[include]
+	path = ~/.config/delta/themes/catppuccin.gitconfig
+
+[delta]
+	features = catppuccin-mocha
+	navigate = true
+	side-by-side = true
+	line-numbers = true
+
+[merge]
+	conflictstyle = diff3
