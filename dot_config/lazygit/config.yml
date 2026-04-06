@@ -1,0 +1,15 @@
+git:
+  paging:
+    colorArg: always
+    pager: delta --color-only --features catppuccin-mocha
+customCommands:
+  - key: '<c-g>'
+    context: 'commits,subCommits'
+    description: '選択したコミット範囲を Diffview で開く'
+    output: terminal
+    command: 'nvim -c "DiffviewOpen {{.SelectedCommitRange.From}}^..{{.SelectedCommitRange.To}}"'
+  - key: 'D'
+    context: 'files'
+    description: '選択したファイルの差分を Diffview で開く'
+    output: terminal
+    command: '~/.config/lazygit/scripts/open-diffview.sh "{{.SelectedFile.Name}}"'
