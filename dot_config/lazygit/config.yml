@@ -8,7 +8,7 @@ customCommands:
     description: '選択したコミット範囲を Diffview で開く'
     output: terminal
     command: 'nvim -c "DiffviewOpen {{.SelectedCommitRange.From}}^..{{.SelectedCommitRange.To}}"'
-  - key: 'D'
+  - key: 'G'
     context: 'files'
     description: '選択したファイルの差分を Diffview で開く'
     output: terminal
