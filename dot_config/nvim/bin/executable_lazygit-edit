@@ -1,0 +1,8 @@
+#!/bin/sh
+# lazygit から nvim でファイルを開く
+# 既存の nvim インスタンスがある場合はそちらで開く
+if [ -n "$NVIM" ]; then
+  nvim --server "$NVIM" --remote-send "<C-\\><C-N>:e $1<CR>"
+else
+  nvim "$@"
+fi
