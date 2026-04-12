@@ -36,6 +36,9 @@
 	path = /opt/homebrew/bin/meld
 [difftool]
 	prompt = false
+[mergetool]
+	prompt = false
+	keepBackup = false
 
 [include]
 	path = ~/.config/delta/themes/catppuccin.gitconfig
@@ -47,4 +50,7 @@
 	line-numbers = true
 
 [merge]
+	tool = nvimdiff
 	conflictstyle = diff3
+[mergetool "nvimdiff"]
+	layout = LOCAL,MERGED,REMOTE
