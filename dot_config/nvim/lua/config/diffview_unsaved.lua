@@ -7,7 +7,7 @@ local vcs = require("diffview.vcs")
 
 local M = {}
 
-local DEFAULT_RANGE = "origin/HEAD...HEAD"
+local DEFAULT_RANGE = "origin/develop...HEAD"
 local POLL_INTERVAL_MS = 300
 local view_timers = setmetatable({}, { __mode = "k" })
 local tracked_cache = {}
@@ -41,10 +41,13 @@ local function build_pathspec_args(path_args)
 end
 
 local function exec_git(adapter, args, opt)
-  local stdout, code, stderr = adapter:exec_sync(args, vim.tbl_extend("force", {
-    cwd = adapter.ctx.toplevel,
-    silent = true,
-  }, opt or {}))
+  local stdout, code, stderr = adapter:exec_sync(
+    args,
+    vim.tbl_extend("force", {
+      cwd = adapter.ctx.toplevel,
+      silent = true,
+    }, opt or {})
+  )
 
   return stdout or {}, code or 1, stderr or {}
 end
@@ -273,22 +276,26 @@ local function start_polling(view)
   local last_signature = current_unsaved_signature(view.adapter.ctx.toplevel)
   view_timers[view] = timer
 
-  timer:start(POLL_INTERVAL_MS, POLL_INTERVAL_MS, vim.schedule_wrap(function()
-    if view.closing:check() or not view.tabpage or not vim.api.nvim_tabpage_is_valid(view.tabpage) then
-      stop_polling(view)
-      return
-    end
+  timer:start(
+    POLL_INTERVAL_MS,
+    POLL_INTERVAL_MS,
+    vim.schedule_wrap(function()
+      if view.closing:check() or not view.tabpage or not vim.api.nvim_tabpage_is_valid(view.tabpage) then
+        stop_polling(view)
+        return
+      end
 
-    if view.tabpage ~= vim.api.nvim_get_current_tabpage() or not view.ready then
-      return
-    end
+      if view.tabpage ~= vim.api.nvim_get_current_tabpage() or not view.ready then
+        return
+      end
 
-    local signature = current_unsaved_signature(view.adapter.ctx.toplevel)
-    if signature ~= last_signature then
-      last_signature = signature
-      view:update_files()
-    end
-  end))
+      local signature = current_unsaved_signature(view.adapter.ctx.toplevel)
+      if signature ~= last_signature then
+        last_signature = signature
+        view:update_files()
+      end
+    end)
+  )
 end
 
 local function open_custom_diffview(range)

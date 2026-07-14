@@ -45,7 +45,6 @@ return {
   -- Python venv 選択 (Telescope UI)
   {
     "linux-cultist/venv-selector.nvim",
-    branch = "regexp",
     dependencies = {
       "neovim/nvim-lspconfig",
       "nvim-telescope/telescope.nvim",
@@ -157,8 +156,9 @@ return {
       },
       keymaps = {
         view = {
-          -- view（差分バッファ）では gd を LSP 定義ジャンプに戻す（デフォルト上書きを削除）
-          -- gf はデフォルト済み（goto_file_edit）のままファイルを開く用途に使用
+          -- 左ペインの revision バッファからも実ファイル基準で LSP ジャンプできるようにする
+          { "n", "gd", function() require("config.diffview_lsp").goto_definition() end, { desc = "Goto definition" } },
+          { "n", "gf", function() require("config.diffview_lsp").goto_file_edit() end, { desc = "Open file (edit)" } },
           -- snacks_explorer と競合する diffview 内部の <leader>e を無効化
           { "n", "<leader>e", false },
           { "n", "<leader>cm", function() require("config.diffview_merge").choose_local_remote() end, { desc = "Choose local + remote" } },
@@ -185,6 +185,69 @@ return {
     config = function(_, opts)
       require("diffview").setup(opts)
       require("config.diffview_merge").setup()
+
+      -- 通常 diff (diff2_horizontal) の左右を逆にする
+      -- 標準: 左=旧リビジョン(a) / 右=作業ツリー(b)
+      -- 変更: 左=作業ツリー(b) / 右=旧リビジョン(a)
+      -- ※ プラグイン本体を書き換えず create メソッドのみ上書き（更新で消えない）
+      local async = require("diffview.async")
+      local Window = require("diffview.scene.window").Window
+      local Diff2Hor = require("diffview.scene.layouts.diff_2_hor").Diff2Hor
+      local api = vim.api
+      local await = async.await
+
+      Diff2Hor.create = async.void(function(self, pivot)
+        self:create_pre()
+        local curwin
+
+        pivot = pivot or self:find_pivot()
+        assert(api.nvim_win_is_valid(pivot), "Layout creation requires a valid window pivot!")
+
+        for _, win in ipairs(self.windows) do
+          if win.id ~= pivot then
+            win:close(true)
+          end
+        end
+
+        -- レイアウト目的: DiffviewFileHistory(コミット間比較) で
+        --   ファイルパネル(左端) | 真ん中=新しいコミット | 右=古いコミット
+        -- にする。
+        --
+        -- diffview の Diff2 では a=左リビジョン(履歴では古い側) / b=右リビジョン(履歴では新しい側)。
+        -- 実測(:DiagE382 で wincol を確認)では、aboveleft vsp を 2 回行うと
+        --   「先に生成したウィンドウが真ん中(col 小) / 後に生成したウィンドウが右(col 大)」
+        -- になる。
+        -- よって真ん中に新しい b を出すには b を先・a を後に生成する。
+        --
+        -- 注意: この diff は両ペインとも git 履歴(buftype=nowrite)で読み取り専用。
+        -- 編集して :w すると E382: Cannot write, 'buftype' option is set が出るのは仕様
+        -- (作業ツリーを含まないコミット間比較のため、そもそも編集対象が無い)。
+        api.nvim_win_call(pivot, function()
+          vim.cmd("aboveleft vsp")
+          curwin = api.nvim_get_current_win()
+
+          if self.b then
+            self.b:set_id(curwin)
+          else
+            self.b = Window({ id = curwin })
+          end
+        end)
+
+        api.nvim_win_call(pivot, function()
+          vim.cmd("aboveleft vsp")
+          curwin = api.nvim_get_current_win()
+
+          if self.a then
+            self.a:set_id(curwin)
+          else
+            self.a = Window({ id = curwin })
+          end
+        end)
+
+        api.nvim_win_close(pivot, true)
+        self.windows = { self.a, self.b }
+        await(self:create_post())
+      end)
     end,
   },
 
@@ -309,7 +372,20 @@ return {
         search_open.explorer_opts()
       )
 
-      opts.lazygit = opts.lazygit or { enabled = true }
+      opts.lazygit = vim.tbl_deep_extend("force", {
+        enabled = true,
+        config = {
+          os = {
+            -- nvim-remote は commit メッセージ等の単発編集は動くが、
+            -- interactive rebase (Ctrl+g の複数コミット編集) では
+            -- git-rebase-todo を --remote-tab で開いた結果バッファの buftype が
+            -- 設定された状態になり :w 時に E382 で保存できない。
+            -- lazygit ターミナル内で新しい nvim を起動する "nvim" なら
+            -- エディタの終了待ちが正しく機能し buftype も空のまま保存できる。
+            editPreset = "nvim",
+          },
+        },
+      }, opts.lazygit or {})
       opts.picker = opts.picker or {}
       opts.picker.sources = opts.picker.sources or {}
       opts.picker.sources.explorer = explorer
@@ -351,20 +427,31 @@ return {
     build = function()
       vim.fn["mkdp#util#install"]()
     end,
-    keys = {
-      { "<leader>mp", "<cmd>MarkdownPreviewToggle<cr>", desc = "Markdown Preview (browser)" },
-      {
-        "<leader>mP",
-        function()
-          local theme = vim.g.mkdp_theme == "dark" and "light" or "dark"
-          vim.g.mkdp_theme = theme
-          vim.notify("Markdown Preview theme: " .. theme, vim.log.levels.INFO)
-        end,
-        desc = "Markdown Preview theme toggle",
-      },
-    },
     init = function()
       vim.g.mkdp_theme = "light"
+      vim.g.mkdp_auto_close = 0
+      vim.g.mkdp_markdown_css = vim.fn.stdpath("config") .. "/styles/markdown-preview.css"
+
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("markdown_preview_keymaps", { clear = true }),
+        pattern = "markdown",
+        callback = function(event)
+          local map = function(key, fn, desc)
+            vim.keymap.set("n", key, fn, { buffer = event.buf, noremap = true, silent = true, desc = desc })
+          end
+
+          map("<leader>mp", function()
+            require("lazy").load({ plugins = { "markdown-preview.nvim" } })
+            vim.fn["mkdp#util#toggle_preview"]()
+          end, "Markdown Preview (browser)")
+
+          map("<leader>mP", function()
+            local theme = vim.g.mkdp_theme == "dark" and "light" or "dark"
+            vim.g.mkdp_theme = theme
+            vim.notify("Markdown Preview theme: " .. theme, vim.log.levels.INFO)
+          end, "Markdown Preview theme toggle")
+        end,
+      })
     end,
   },
 }

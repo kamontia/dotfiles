@@ -1,8 +1,24 @@
 #!/bin/sh
-# lazygit から nvim でファイルを開く
-# 既存の nvim インスタンスがある場合はそちらで開く
-if [ -n "$NVIM" ]; then
-  nvim --server "$NVIM" --remote-send "<C-\\><C-N>:e $1<CR>"
-else
-  nvim "$@"
+set -eu
+
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  echo "usage: lazygit-edit <path> [line]" >&2
+  exit 1
 fi
+
+file="$1"
+line="${2-}"
+
+if [ -n "${NVIM-}" ] && command -v nvr >/dev/null 2>&1; then
+  nvr --servername "$NVIM" --remote-send "q"
+  if [ -n "$line" ]; then
+    exec nvr --servername "$NVIM" --remote-silent "+$line" "$file"
+  fi
+  exec nvr --servername "$NVIM" --remote-silent "$file"
+fi
+
+if [ -n "$line" ]; then
+  exec nvim "+$line" -- "$file"
+fi
+
+exec nvim -- "$file"
