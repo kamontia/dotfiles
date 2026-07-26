@@ -1,11 +1,14 @@
 function hdev() {
-  local agent_command
+  local agent_name
+  local agent_run_command
   case ${1:-} in
     claude)
-      agent_command=claude
+      agent_name=claude
+      agent_run_command="claude --permission-mode auto"
       ;;
     codex)
-      agent_command=codex
+      agent_name=codex
+      agent_run_command="codex --sandbox workspace-write --ask-for-approval never"
       ;;
     *)
       print -u2 -- "使い方: hdev <claude|codex>"
@@ -14,7 +17,7 @@ function hdev() {
   esac
 
   local required_command
-  for required_command in herdr hunk jq "$agent_command"; do
+  for required_command in herdr hunk jq "$agent_name"; do
     if (( ! $+commands[$required_command] )) && (( ! $+functions[$required_command] )); then
       print -u2 -- "必要なコマンドが見つかりません: $required_command"
       return 1
@@ -85,7 +88,7 @@ function hdev() {
       tab_json=$(herdr tab create \
         --workspace "$workspace_id" \
         --cwd "$repo_root" \
-        --label "$agent_command" \
+        --label "$agent_name" \
         --focus) || return 1
       root_pane_id=$(jq -er '.result.root_pane.pane_id' <<< "$tab_json") || return 1
     else
@@ -111,12 +114,12 @@ function hdev() {
     --ratio 0.5) || return 1
   hunk_pane_id=$(jq -er '.result.pane.pane_id' <<< "$hunk_pane_json") || return 1
 
-  herdr pane rename "$root_pane_id" "$agent_command" >/dev/null || return 1
+  herdr pane rename "$root_pane_id" "$agent_name" >/dev/null || return 1
   herdr pane rename "$hunk_pane_id" review >/dev/null || return 1
   herdr pane rename "$bottom_pane_id" shell >/dev/null || return 1
 
   herdr pane run "$hunk_pane_id" "hunk diff --watch" >/dev/null || return 1
-  herdr pane run "$root_pane_id" "$agent_command" >/dev/null || return 1
+  herdr pane run "$root_pane_id" "$agent_run_command" >/dev/null || return 1
 
   [[ ${HERDR_ENV:-0} == 1 ]] && return 0
   herdr

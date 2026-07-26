@@ -149,7 +149,7 @@ function test_codexを指定すると3ペインを作ってCodexを起動する(
   assert_log_contains "pane split w1:p1 --direction down --ratio 0.7"
   assert_log_contains "pane split w1:p1 --direction right --ratio 0.5"
   assert_log_contains "pane run w1:p3 hunk diff --watch"
-  assert_log_contains "pane run w1:p1 codex"
+  assert_log_contains "pane run w1:p1 codex --sandbox workspace-write --ask-for-approval never"
 }
 
 function test_claudeを指定するとClaudeCodeを起動する() {
@@ -158,7 +158,7 @@ function test_claudeを指定するとClaudeCodeを起動する() {
 
   hdev claude
 
-  assert_log_contains "pane run w1:p1 claude"
+  assert_log_contains "pane run w1:p1 claude --permission-mode auto"
 }
 
 function test_新規workspaceではペイン分割を正確に2回だけ行う() {
@@ -194,7 +194,7 @@ function test_既存workspaceがあれば新しいタブに3ペインを作る()
   assert_log_contains "pane split w1:p10 --direction down --ratio 0.7"
   assert_log_contains "pane split w1:p10 --direction right --ratio 0.5"
   assert_log_contains "pane run w1:p12 hunk diff --watch"
-  assert_log_contains "pane run w1:p10 codex"
+  assert_log_contains "pane run w1:p10 codex --sandbox workspace-write --ask-for-approval never"
 }
 
 function test_未対応の引数を拒否する() {
@@ -236,7 +236,7 @@ function test_Herdr内ではクライアントを再起動しない() {
   assert_log_contains "pane split w1:p9 --direction down --ratio 0.7"
   assert_log_contains "pane split w1:p9 --direction right --ratio 0.5"
   assert_log_contains "pane run w1:p11 hunk diff --watch"
-  assert_log_contains "pane run w1:p9 claude"
+  assert_log_contains "pane run w1:p9 claude --permission-mode auto"
   if grep -Fqx -- "<attach>" "$fake_log"; then
     print -u2 -- "Herdr内でクライアントを再起動しています"
     return 1
