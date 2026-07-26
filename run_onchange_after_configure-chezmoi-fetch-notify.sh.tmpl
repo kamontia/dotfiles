@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# plist-hash: {{ include "Library/LaunchAgents/com.kamo.chezmoi-fetch-notify.plist.tmpl" | sha256sum }}
+
+set -eu
+
+label="com.kamo.chezmoi-fetch-notify"
+domain="gui/$(id -u)"
+plist="$HOME/Library/LaunchAgents/$label.plist"
+
+launchctl bootout "$domain/$label" 2>/dev/null || true
+launchctl bootstrap "$domain" "$plist"
+launchctl enable "$domain/$label"
