@@ -15,6 +15,7 @@ notification_log=""
 fake_chezmoi=""
 fake_osascript=${CHEZMOI_FETCH_NOTIFY_TEST_OSASCRIPT_BIN:-"${0:A:h}/fakes/osascript"}
 notifier_script=${CHEZMOI_FETCH_NOTIFY_SCRIPT:?CHEZMOI_FETCH_NOTIFY_SCRIPTが未設定です}
+blocking_notifier_pid=""
 
 function arrange_test_paths() {
   fixture_number=$((fixture_number + 1))
@@ -104,6 +105,45 @@ function arrange_signal_chezmoi() {
   chmod +x "$fake_chezmoi"
 }
 
+function arrange_blocking_chezmoi() {
+  mkdir -p "$cache_dir"
+  print -r -- '#!/usr/bin/env zsh' > "$fake_chezmoi"
+  print -r -- 'print -r -- "$FAKE_CHEZMOI_SOURCE_PATH"' >> "$fake_chezmoi"
+  print -r -- ': > "$FAKE_CHEZMOI_READY"' >> "$fake_chezmoi"
+  print -r -- 'while [[ ! -e "$FAKE_CHEZMOI_CONTINUE" ]]; do sleep 0.01; done' >> "$fake_chezmoi"
+  chmod +x "$fake_chezmoi"
+}
+
+function wait_for_file() {
+  local file=$1
+  local attempt
+
+  for attempt in {1..500}; do
+    [[ -e "$file" ]] && return 0
+    sleep 0.01
+  done
+
+  print -u2 -- "待機対象のファイルが作成されませんでした: $file"
+  return 1
+}
+
+function start_blocking_notifier() {
+  local now_epoch=$1
+  local ready_file=$2
+  local continue_file=$3
+  local stdout_file=$4
+  local stderr_file=$5
+
+  CHEZMOI_FETCH_NOTIFY_CHEZMOI_BIN="$fake_chezmoi" \
+    CHEZMOI_FETCH_NOTIFY_OSASCRIPT_BIN="$fake_osascript" \
+    CHEZMOI_FETCH_NOTIFY_CACHE_DIR="$cache_dir" \
+    CHEZMOI_FETCH_NOTIFY_NOW_EPOCH="$now_epoch" \
+    FAKE_CHEZMOI_READY="$ready_file" \
+    FAKE_CHEZMOI_CONTINUE="$continue_file" \
+    "$notifier_script" > "$stdout_file" 2> "$stderr_file" &
+  blocking_notifier_pid=$!
+}
+
 function assert_file_line_count() {
   local file=$1
   local expected=$2
@@ -156,6 +196,17 @@ function assert_file_is() {
 
   actual=$(< "$file")
   [[ $actual == "$expected" ]]
+}
+
+function assert_value_is() {
+  local actual=$1
+  local expected=$2
+  local description=$3
+
+  if [[ $actual != "$expected" ]]; then
+    print -u2 -- "$description: expected=$expected actual=$actual"
+    return 1
+  fi
 }
 
 function run_notifier() {
@@ -312,6 +363,34 @@ function test_期限切れロックを回収する() {
   [[ ! -d "$cache_dir/run.lock" ]]
 }
 
+function test_旧所有者の終了は置換後のロックを削除しない() {
+  arrange_synced_repository
+  arrange_blocking_chezmoi
+  local old_ready="$cache_dir/old.ready"
+  local old_continue="$cache_dir/old.continue"
+  local new_ready="$cache_dir/new.ready"
+  local new_continue="$cache_dir/new.continue"
+  local old_pid
+  local new_pid
+  local actual_owner
+
+  start_blocking_notifier "$((fake_now - 3601))" \
+    "$old_ready" "$old_continue" "$cache_dir/old.stdout" "$cache_dir/old.stderr"
+  old_pid=$blocking_notifier_pid
+  wait_for_file "$old_ready"
+  start_blocking_notifier "$fake_now" \
+    "$new_ready" "$new_continue" "$cache_dir/new.stdout" "$cache_dir/new.stderr"
+  new_pid=$blocking_notifier_pid
+  wait_for_file "$new_ready"
+  : > "$old_continue"
+  wait "$old_pid"
+  actual_owner=$(cat "$cache_dir/run.lock/pid" 2>/dev/null || print -r -- "missing")
+  : > "$new_continue"
+  wait "$new_pid"
+
+  assert_value_is "$actual_owner" "$new_pid" "置換後のロック所有PID"
+}
+
 function test_通知失敗時は状態を更新しない() {
   arrange_synced_repository
   advance_remote
@@ -383,6 +462,7 @@ test_started_atが非数値のロックはスキップする
 test_started_atが未来のロックはスキップする
 test_started_atが過大桁数のロックはスキップする
 test_期限切れロックを回収する
+test_旧所有者の終了は置換後のロックを削除しない
 test_通知失敗時は状態を更新しない
 test_通知に正しい引数を渡す
 test_TERM受信時は後続処理を実行しない

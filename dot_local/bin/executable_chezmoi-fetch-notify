@@ -7,6 +7,8 @@ osascript_bin=${CHEZMOI_FETCH_NOTIFY_OSASCRIPT_BIN:-osascript}
 cache_dir=${CHEZMOI_FETCH_NOTIFY_CACHE_DIR:-"$HOME/Library/Caches/chezmoi-fetch-notify"}
 now_epoch=${CHEZMOI_FETCH_NOTIFY_NOW_EPOCH:-$(date +%s)}
 lock_dir="$cache_dir/run.lock"
+lock_guard_dir="$cache_dir/run.lock.guard"
+lock_token="$$:$now_epoch:$RANDOM:$RANDOM"
 state_file="$cache_dir/last-notified-commit"
 
 function log_error() {
@@ -14,8 +16,30 @@ function log_error() {
 }
 
 function release_lock() {
-  command rm -f -- "$lock_dir/pid" "$lock_dir/started_at"
-  command rmdir -- "$lock_dir" 2>/dev/null || true
+  command mkdir -- "$lock_guard_dir" 2>/dev/null || return 0
+
+  local owner=""
+  local owner_pid=""
+  [[ -r "$lock_dir/owner" ]] && read -r owner < "$lock_dir/owner"
+  [[ -r "$lock_dir/pid" ]] && read -r owner_pid < "$lock_dir/pid"
+
+  if [[ $owner == "$lock_token" && $owner_pid == $$ ]]; then
+    command rm -f -- "$lock_dir/owner" "$lock_dir/pid" "$lock_dir/started_at"
+    command rmdir -- "$lock_dir" 2>/dev/null || true
+  fi
+
+  command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+}
+
+function write_lock_metadata() {
+  print -r -- "$lock_token" > "$lock_dir/owner" &&
+    print -r -- $$ > "$lock_dir/pid" &&
+    print -r -- "$now_epoch" > "$lock_dir/started_at"
+}
+
+function discard_lock() {
+  command rm -f -- "$lock_dir/owner" "$lock_dir/pid" "$lock_dir/started_at"
+  command rmdir -- "$lock_dir" 2>/dev/null
 }
 
 function is_canonical_epoch() {
@@ -89,24 +113,44 @@ function lock_is_expired() {
 
 function try_acquire_lock() {
   command mkdir -p -- "$cache_dir" || return 1
+  command mkdir -- "$lock_guard_dir" 2>/dev/null || return 2
+
   if command mkdir -- "$lock_dir" 2>/dev/null; then
-    print -r -- $$ > "$lock_dir/pid"
-    print -r -- "$now_epoch" > "$lock_dir/started_at"
-    return 0
+    if write_lock_metadata; then
+      command rmdir -- "$lock_guard_dir" 2>/dev/null || return 1
+      return 0
+    fi
+
+    discard_lock >/dev/null 2>&1 || true
+    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    return 1
   fi
 
   local started_at=""
   [[ -r "$lock_dir/started_at" ]] && read -r started_at < "$lock_dir/started_at"
 
   if ! lock_is_expired "$started_at"; then
+    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
     return 2
   fi
 
-  command rm -f -- "$lock_dir/pid" "$lock_dir/started_at"
-  command rmdir -- "$lock_dir" 2>/dev/null || return 2
-  command mkdir -- "$lock_dir" || return 2
-  print -r -- $$ > "$lock_dir/pid"
-  print -r -- "$now_epoch" > "$lock_dir/started_at"
+  if ! discard_lock; then
+    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    return 2
+  fi
+
+  if ! command mkdir -- "$lock_dir" 2>/dev/null; then
+    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    return 2
+  fi
+
+  if ! write_lock_metadata; then
+    discard_lock >/dev/null 2>&1 || true
+    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    return 1
+  fi
+
+  command rmdir -- "$lock_guard_dir" 2>/dev/null || return 1
 }
 
 try_acquire_lock
