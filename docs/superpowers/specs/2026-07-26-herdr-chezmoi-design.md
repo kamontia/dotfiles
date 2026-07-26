@@ -31,34 +31,94 @@ Herdr内でtmuxを起動する可能性があるため、両者のPrefixは分�
 - Herdrのネスト起動許可
 - `.zshrc` 全体のChezmoi正本への同期
 - `hdev` が作成するSpace、Tab、Pane構成の仕様変更
-- Herdrまたはtmuxの追加キーバインド変更
+- 選択した番号ショートカット以外のHerdrキーバインド変更
+- tmuxの追加キーバインド変更
 
 ## 設定構成
 
 ### Herdr
 
 Chezmoi正本へ `dot_config/herdr/config.toml` を追加する。
-現在のライブ設定を維持し、`[keys]` にPrefixだけを追加する。
+現在のライブ設定を維持し、選択した操作、表示、通知、復元、更新、IME設定を明示する。
 
 ```toml
-[ui]
-agent_panel_sort = "spaces"
-show_agent_labels_on_pane_borders = true
-
-[experimental]
-switch_ascii_input_source_in_prefix = true
+onboarding = false
 
 [theme]
 name = "catppuccin"
 auto_switch = false
 
+[terminal]
+default_shell = ""
+shell_mode = "auto"
+new_cwd = "follow"
+
+[update]
+channel = "stable"
+version_check = true
+manifest_check = true
+
 [keys]
 prefix = "ctrl+q"
+switch_tab = "prefix+1..9"
+switch_workspace = "prefix+shift+1..9"
+focus_agent = "prefix+alt+1..9"
+
+[ui]
+agent_panel_sort = "spaces"
+sidebar_start_collapsed = false
+prompt_new_tab_name = false
+pane_borders = true
+pane_gaps = true
+show_agent_labels_on_pane_borders = true
+hide_tab_bar_when_single_tab = false
+
+[ui.toast]
+delivery = "terminal"
+delay_seconds = 1
+
+[ui.sound]
+enabled = true
+
+[session]
+resume_agents_on_restore = true
+
+[remote]
+manage_ssh_config = true
+
+[experimental]
+allow_nested = false
+switch_ascii_input_source_in_prefix = true
+reveal_hidden_cursor_for_cjk_ime = true
+cjk_ime_agents = ["claude", "codex"]
 ```
 
 HerdrのPrefix操作は `Ctrl+Q` に続けてアクションキーを押す。
 既定のdetachは `prefix+q` なので、操作は `Ctrl+Q`、`Q` の順になる。
 `experimental.allow_nested` は有効化しない。
+
+番号ショートカットは次の対応にする。
+
+- `Ctrl+Q`、`1..9`：Tabを切り替える。
+- `Ctrl+Q`、`Shift+1..9`：Spaceを切り替える。
+- `Ctrl+Q`、`Alt+1..9`：Agentへフォーカスする。
+
+新しいTabは名前入力を挟まず作成する。
+新しいPaneとTabは、現在のPaneまたはSpaceのディレクトリを引き継ぐ。
+`default_shell` は環境の `$SHELL` を使い、`shell_mode = "auto"` によってmacOSではログインシェルとして起動する。
+
+サイドバーは展開状態で開始し、AgentをSpace単位で並べる。
+単一TabでもTabバーを表示し、Paneの境界線、余白、Agent名を表示する。
+
+Agentの完了または入力待ちは、外側のターミナルを通じてデスクトップ通知する。
+通知音は有効にする。
+
+Herdrサーバー再起動後は、公式Integrationがセッション参照を取得できたAgentを復元する。
+更新チャンネルは安定版とし、Herdr本体とAgent検出定義の更新を確認する。
+リモート接続では、利用者のSSH設定を優先しながらHerdrにkeepalive設定を補完させる。
+
+Prefixモード中はmacOSの入力ソースを一時的にASCIIへ切り替える。
+Claude CodeとCodexでは、IME候補ウィンドウの位置を合わせるため、フォーカス中のPaneのカーソルを外側のターミナルへ表示する。
 
 ### tmux
 
@@ -151,7 +211,10 @@ Herdrが起動中なら `herdr server reload-config` でPrefix設定を再読込
 5. `herdr --version` と `hunk --version` を確認する。
 6. Herdr設定を再読込し、`Ctrl+Q` でPrefixモードへ入れることを確認する。
 7. tmuxのPrefixが `Ctrl+A` のままであることを確認する。
-8. 隔離したHerdrセッションで、1 Space内の複数Tabがそれぞれ3ペインになることを確認する。
+8. Tab、Space、Agentの番号ショートカットを確認する。
+9. デスクトップ通知と通知音を確認する。
+10. Claude CodeとCodexでIME候補ウィンドウの位置を確認する。
+11. 隔離したHerdrセッションで、1 Space内の複数Tabがそれぞれ3ペインになることを確認する。
 
 ## 失敗時の扱い
 
