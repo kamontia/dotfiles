@@ -4,19 +4,72 @@ set -u
 
 chezmoi_bin=${CHEZMOI_FETCH_NOTIFY_CHEZMOI_BIN:-chezmoi}
 osascript_bin=${CHEZMOI_FETCH_NOTIFY_OSASCRIPT_BIN:-osascript}
+lockf_bin=${CHEZMOI_FETCH_NOTIFY_LOCKF_BIN:-/usr/bin/lockf}
 cache_dir=${CHEZMOI_FETCH_NOTIFY_CACHE_DIR:-"$HOME/Library/Caches/chezmoi-fetch-notify"}
 now_epoch=${CHEZMOI_FETCH_NOTIFY_NOW_EPOCH:-$(date +%s)}
 lock_dir="$cache_dir/run.lock"
-lock_guard_dir="$cache_dir/run.lock.guard"
+lock_guard_file="$cache_dir/run.lock.guard"
 lock_token="$$:$now_epoch:$RANDOM:$RANDOM"
 state_file="$cache_dir/last-notified-commit"
+typeset -gi lock_guard_fd=-1
 
 function log_error() {
   print -u2 -- "chezmoi-fetch-notify: $1"
 }
 
+function legacy_transition_guard_is_recoverable() {
+  local owner_pid=""
+  local modified_at=""
+
+  [[ -r "$lock_dir/pid" ]] && read -r owner_pid < "$lock_dir/pid"
+  if [[ -n $owner_pid ]]; then
+    [[ $owner_pid == [1-9] || $owner_pid == [1-9]<-> ]] || return 1
+    /bin/kill -0 "$owner_pid" 2>/dev/null && return 1
+  fi
+
+  modified_at=$(/usr/bin/stat -f %m -- "$lock_guard_file" 2>/dev/null) || return 1
+  lock_is_expired "$modified_at"
+}
+
+function try_acquire_transition_guard() {
+  if [[ -d "$lock_guard_file" ]]; then
+    legacy_transition_guard_is_recoverable || return 2
+    command rmdir -- "$lock_guard_file" 2>/dev/null || return 2
+  fi
+
+  { exec {lock_guard_fd}>> "$lock_guard_file" } 2>/dev/null || return 1
+
+  "$lockf_bin" -s -t 0 "$lock_guard_fd"
+  local lock_status=$?
+  if [[ $lock_status == 0 ]]; then
+    return 0
+  fi
+
+  exec {lock_guard_fd}>&-
+  lock_guard_fd=-1
+  [[ $lock_status == 75 ]] && return 2
+  return 1
+}
+
+function release_transition_guard() {
+  if (( lock_guard_fd >= 0 )); then
+    exec {lock_guard_fd}>&-
+    lock_guard_fd=-1
+  fi
+}
+
 function release_lock() {
-  command mkdir -- "$lock_guard_dir" 2>/dev/null || return 0
+  local attempt
+  local guard_status=2
+
+  for attempt in {1..50}; do
+    try_acquire_transition_guard
+    guard_status=$?
+    [[ $guard_status == 0 ]] && break
+    [[ $guard_status == 2 ]] || return 0
+    sleep 0.01
+  done
+  [[ $guard_status == 0 ]] || return 0
 
   local owner=""
   local owner_pid=""
@@ -28,7 +81,7 @@ function release_lock() {
     command rmdir -- "$lock_dir" 2>/dev/null || true
   fi
 
-  command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+  release_transition_guard
 }
 
 function write_lock_metadata() {
@@ -113,16 +166,19 @@ function lock_is_expired() {
 
 function try_acquire_lock() {
   command mkdir -p -- "$cache_dir" || return 1
-  command mkdir -- "$lock_guard_dir" 2>/dev/null || return 2
+  try_acquire_transition_guard
+  local guard_status=$?
+  [[ $guard_status == 2 ]] && return 2
+  [[ $guard_status == 0 ]] || return 1
 
   if command mkdir -- "$lock_dir" 2>/dev/null; then
     if write_lock_metadata; then
-      command rmdir -- "$lock_guard_dir" 2>/dev/null || return 1
+      release_transition_guard
       return 0
     fi
 
     discard_lock >/dev/null 2>&1 || true
-    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    release_transition_guard
     return 1
   fi
 
@@ -130,27 +186,27 @@ function try_acquire_lock() {
   [[ -r "$lock_dir/started_at" ]] && read -r started_at < "$lock_dir/started_at"
 
   if ! lock_is_expired "$started_at"; then
-    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    release_transition_guard
     return 2
   fi
 
   if ! discard_lock; then
-    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    release_transition_guard
     return 2
   fi
 
   if ! command mkdir -- "$lock_dir" 2>/dev/null; then
-    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    release_transition_guard
     return 2
   fi
 
   if ! write_lock_metadata; then
     discard_lock >/dev/null 2>&1 || true
-    command rmdir -- "$lock_guard_dir" 2>/dev/null || true
+    release_transition_guard
     return 1
   fi
 
-  command rmdir -- "$lock_guard_dir" 2>/dev/null || return 1
+  release_transition_guard
 }
 
 try_acquire_lock

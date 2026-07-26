@@ -13,9 +13,12 @@ local_repo=""
 cache_dir=""
 notification_log=""
 fake_chezmoi=""
+fake_lockf=""
+fake_lockf_log=""
 fake_osascript=${CHEZMOI_FETCH_NOTIFY_TEST_OSASCRIPT_BIN:-"${0:A:h}/fakes/osascript"}
 notifier_script=${CHEZMOI_FETCH_NOTIFY_SCRIPT:?CHEZMOI_FETCH_NOTIFY_SCRIPTが未設定です}
 blocking_notifier_pid=""
+guard_holder_pid=""
 
 function arrange_test_paths() {
   fixture_number=$((fixture_number + 1))
@@ -26,6 +29,8 @@ function arrange_test_paths() {
   cache_dir="$fixture_dir/cache"
   notification_log="$fixture_dir/notifications.log"
   fake_chezmoi="$fixture_dir/fake-chezmoi"
+  fake_lockf="$fixture_dir/fake-lockf"
+  fake_lockf_log="$fixture_dir/lockf.log"
   mkdir -p "$fixture_dir"
 }
 
@@ -33,6 +38,14 @@ function create_fake_chezmoi() {
   print -r -- '#!/usr/bin/env zsh' > "$fake_chezmoi"
   print -r -- 'print -r -- "$FAKE_CHEZMOI_SOURCE_PATH"' >> "$fake_chezmoi"
   chmod +x "$fake_chezmoi"
+}
+
+function create_fake_lockf() {
+  print -r -- '#!/usr/bin/env zsh' > "$fake_lockf"
+  print -r -- 'print -r -- attempt >> "$FAKE_LOCKF_LOG"' >> "$fake_lockf"
+  print -r -- 'exec /usr/bin/lockf "$@"' >> "$fake_lockf"
+  chmod +x "$fake_lockf"
+  : > "$fake_lockf_log"
 }
 
 function arrange_synced_repository() {
@@ -50,6 +63,7 @@ function arrange_synced_repository() {
   git clone -q "$remote_repo" "$local_repo"
   git -C "$local_repo" branch --set-upstream-to=origin/main main >/dev/null
   create_fake_chezmoi
+  create_fake_lockf
   : > "$notification_log"
   export FAKE_CHEZMOI_SOURCE_PATH="$local_repo"
   export FAKE_NOTIFICATION_LOG="$notification_log"
@@ -65,6 +79,7 @@ function arrange_repository_without_upstream() {
   git -C "$local_repo" add dotfile
   git -C "$local_repo" commit -q -m 'initial'
   create_fake_chezmoi
+  create_fake_lockf
   : > "$notification_log"
   export FAKE_CHEZMOI_SOURCE_PATH="$local_repo"
   export FAKE_NOTIFICATION_LOG="$notification_log"
@@ -94,6 +109,15 @@ function arrange_lock_without_started_at() {
 function arrange_unreadable_lock_started_at() {
   arrange_lock_started_at "$1"
   chmod 000 "$cache_dir/run.lock/started_at"
+}
+
+function arrange_legacy_guard_dir() {
+  local modified_at=$1
+  local touch_time
+
+  mkdir -p "$cache_dir/run.lock.guard"
+  touch_time=$(TZ=UTC date -r "$modified_at" +%Y%m%d%H%M.%S)
+  TZ=UTC touch -t "$touch_time" "$cache_dir/run.lock.guard"
 }
 
 function arrange_signal_chezmoi() {
@@ -127,6 +151,20 @@ function wait_for_file() {
   return 1
 }
 
+function wait_for_file_line_count() {
+  local file=$1
+  local expected=$2
+  local attempt
+
+  for attempt in {1..500}; do
+    [[ $(wc -l < "$file") -ge $expected ]] && return 0
+    sleep 0.01
+  done
+
+  print -u2 -- "待機対象の行数に到達しませんでした: file=$file expected=$expected"
+  return 1
+}
+
 function start_blocking_notifier() {
   local now_epoch=$1
   local ready_file=$2
@@ -136,12 +174,36 @@ function start_blocking_notifier() {
 
   CHEZMOI_FETCH_NOTIFY_CHEZMOI_BIN="$fake_chezmoi" \
     CHEZMOI_FETCH_NOTIFY_OSASCRIPT_BIN="$fake_osascript" \
+    CHEZMOI_FETCH_NOTIFY_LOCKF_BIN="$fake_lockf" \
     CHEZMOI_FETCH_NOTIFY_CACHE_DIR="$cache_dir" \
     CHEZMOI_FETCH_NOTIFY_NOW_EPOCH="$now_epoch" \
     FAKE_CHEZMOI_READY="$ready_file" \
     FAKE_CHEZMOI_CONTINUE="$continue_file" \
+    FAKE_LOCKF_LOG="$fake_lockf_log" \
     "$notifier_script" > "$stdout_file" 2> "$stderr_file" &
   blocking_notifier_pid=$!
+}
+
+function start_guard_holder() {
+  local ready_file=$1
+  local continue_fifo=$2
+
+  mkfifo "$continue_fifo"
+  zsh -c '
+    exec {guard_fd}> "$1"
+    /usr/bin/lockf -s -t 0 "$guard_fd" || exit 1
+    exec {continue_fd}<> "$2"
+    : > "$3"
+    read -r _ <&$continue_fd
+  ' _ "$cache_dir/run.lock.guard" "$continue_fifo" "$ready_file" &
+  guard_holder_pid=$!
+}
+
+function release_guard_holder() {
+  local continue_fifo=$1
+
+  print -r -- continue > "$continue_fifo"
+  wait "$guard_holder_pid"
 }
 
 function assert_file_line_count() {
@@ -212,8 +274,10 @@ function assert_value_is() {
 function run_notifier() {
   CHEZMOI_FETCH_NOTIFY_CHEZMOI_BIN="$fake_chezmoi" \
     CHEZMOI_FETCH_NOTIFY_OSASCRIPT_BIN="$fake_osascript" \
+    CHEZMOI_FETCH_NOTIFY_LOCKF_BIN="$fake_lockf" \
     CHEZMOI_FETCH_NOTIFY_CACHE_DIR="$cache_dir" \
     CHEZMOI_FETCH_NOTIFY_NOW_EPOCH="$fake_now" \
+    FAKE_LOCKF_LOG="$fake_lockf_log" \
     "$notifier_script"
 }
 
@@ -363,6 +427,148 @@ function test_期限切れロックを回収する() {
   [[ ! -d "$cache_dir/run.lock" ]]
 }
 
+function test_残留ガードファイルがあっても通知処理を進める() {
+  arrange_synced_repository
+  advance_remote
+  mkdir -p "$cache_dir"
+  : > "$cache_dir/run.lock.guard"
+
+  run_notifier
+
+  assert_file_line_count "$notification_log" 1
+  [[ ! -d "$cache_dir/run.lock" ]]
+}
+
+function test_3600秒超の旧ガードディレクトリを回収する() {
+  arrange_synced_repository
+  advance_remote
+  arrange_legacy_guard_dir "$((fake_now - 3601))"
+
+  run_notifier
+
+  assert_file_line_count "$notification_log" 1
+  [[ ! -d "$cache_dir/run.lock.guard" ]]
+}
+
+function test_3600秒経過の旧ガードディレクトリはスキップする() {
+  arrange_synced_repository
+  advance_remote
+  arrange_legacy_guard_dir "$((fake_now - 3600))"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock.guard" ]]
+}
+
+function test_死亡所有者の旧ガードディレクトリを回収する() {
+  arrange_synced_repository
+  advance_remote
+  arrange_legacy_guard_dir "$((fake_now - 3601))"
+  arrange_lock_started_at "$((fake_now - 3601))"
+  local dead_pid
+  zsh -c 'exit 0' &
+  dead_pid=$!
+  wait "$dead_pid"
+  print -r -- "$dead_pid" > "$cache_dir/run.lock/pid"
+
+  run_notifier
+
+  assert_file_line_count "$notification_log" 1
+  [[ ! -d "$cache_dir/run.lock.guard" ]]
+}
+
+function test_生存所有者の旧ガードディレクトリは回収しない() {
+  arrange_synced_repository
+  advance_remote
+  arrange_legacy_guard_dir "$((fake_now - 3601))"
+  mkdir -p "$cache_dir/run.lock"
+  print -r -- "$$" > "$cache_dir/run.lock/pid"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock.guard" ]]
+}
+
+function test_所有PIDが不明な旧ガードディレクトリは回収しない() {
+  arrange_synced_repository
+  advance_remote
+  arrange_legacy_guard_dir "$((fake_now - 3601))"
+  arrange_lock_started_at "$((fake_now - 3601))"
+  print -r -- "not-a-pid" > "$cache_dir/run.lock/pid"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock.guard" ]]
+}
+
+function test_release競合後に自分のロックを解放する() {
+  arrange_synced_repository
+  arrange_blocking_chezmoi
+  local notifier_ready="$cache_dir/notifier.ready"
+  local notifier_continue="$cache_dir/notifier.continue"
+  local guard_ready="$cache_dir/guard.ready"
+  local guard_continue="$cache_dir/guard.continue"
+  local notifier_pid
+
+  start_blocking_notifier "$fake_now" \
+    "$notifier_ready" "$notifier_continue" "$cache_dir/notifier.stdout" "$cache_dir/notifier.stderr"
+  notifier_pid=$blocking_notifier_pid
+  wait_for_file "$notifier_ready"
+  : > "$fake_lockf_log"
+  start_guard_holder "$guard_ready" "$guard_continue"
+  wait_for_file "$guard_ready"
+  : > "$notifier_continue"
+  wait_for_file_line_count "$fake_lockf_log" 1
+  release_guard_holder "$guard_continue"
+  wait "$notifier_pid"
+
+  [[ ! -d "$cache_dir/run.lock" ]]
+}
+
+function test_release競合が上限を超えたら自分のロックを残して終了する() {
+  arrange_synced_repository
+  arrange_blocking_chezmoi
+  local notifier_ready="$cache_dir/notifier.ready"
+  local notifier_continue="$cache_dir/notifier.continue"
+  local guard_ready="$cache_dir/guard.ready"
+  local guard_continue="$cache_dir/guard.continue"
+  local notifier_pid
+
+  start_blocking_notifier "$fake_now" \
+    "$notifier_ready" "$notifier_continue" "$cache_dir/notifier.stdout" "$cache_dir/notifier.stderr"
+  notifier_pid=$blocking_notifier_pid
+  wait_for_file "$notifier_ready"
+  : > "$fake_lockf_log"
+  start_guard_holder "$guard_ready" "$guard_continue"
+  wait_for_file "$guard_ready"
+  : > "$notifier_continue"
+  wait "$notifier_pid"
+  release_guard_holder "$guard_continue"
+
+  # 再試行回数自体がbounded retryの仕様なので、real lockfへ委譲するFakeの記録を検証する。
+  assert_file_line_count "$fake_lockf_log" 50
+  [[ -d "$cache_dir/run.lock" ]]
+}
+
+function test_ガード保持者がSIGKILLされても次の実行を進める() {
+  arrange_synced_repository
+  advance_remote
+  mkdir -p "$cache_dir"
+  local guard_ready="$cache_dir/guard.ready"
+  local guard_continue="$cache_dir/guard.continue"
+
+  start_guard_holder "$guard_ready" "$guard_continue"
+  wait_for_file "$guard_ready"
+  kill -KILL "$guard_holder_pid"
+  wait "$guard_holder_pid" 2>/dev/null || true
+  run_notifier
+
+  assert_file_line_count "$notification_log" 1
+}
+
 function test_旧所有者の終了は置換後のロックを削除しない() {
   arrange_synced_repository
   arrange_blocking_chezmoi
@@ -462,6 +668,15 @@ test_started_atが非数値のロックはスキップする
 test_started_atが未来のロックはスキップする
 test_started_atが過大桁数のロックはスキップする
 test_期限切れロックを回収する
+test_残留ガードファイルがあっても通知処理を進める
+test_3600秒超の旧ガードディレクトリを回収する
+test_3600秒経過の旧ガードディレクトリはスキップする
+test_死亡所有者の旧ガードディレクトリを回収する
+test_生存所有者の旧ガードディレクトリは回収しない
+test_所有PIDが不明な旧ガードディレクトリは回収しない
+test_release競合後に自分のロックを解放する
+test_release競合が上限を超えたら自分のロックを残して終了する
+test_ガード保持者がSIGKILLされても次の実行を進める
 test_旧所有者の終了は置換後のロックを削除しない
 test_通知失敗時は状態を更新しない
 test_通知に正しい引数を渡す
