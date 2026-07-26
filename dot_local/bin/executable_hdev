@@ -1,0 +1,11 @@
+#!/usr/bin/env zsh
+
+implementation_path="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/functions/hdev.zsh"
+
+if [[ ! -r "$implementation_path" ]]; then
+  print -u2 -- "hdevの実装が見つかりません: $implementation_path"
+  exit 1
+fi
+
+source "$implementation_path"
+hdev "$@"
