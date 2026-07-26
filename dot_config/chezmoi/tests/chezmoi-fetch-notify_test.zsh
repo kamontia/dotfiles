@@ -13,7 +13,7 @@ local_repo=""
 cache_dir=""
 notification_log=""
 fake_chezmoi=""
-fake_osascript="${0:A:h}/fakes/executable_osascript"
+fake_osascript=${CHEZMOI_FETCH_NOTIFY_TEST_OSASCRIPT_BIN:-"${0:A:h}/fakes/osascript"}
 notifier_script=${CHEZMOI_FETCH_NOTIFY_SCRIPT:?CHEZMOI_FETCH_NOTIFY_SCRIPTが未設定です}
 
 function arrange_test_paths() {
