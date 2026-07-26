@@ -1,0 +1,101 @@
+#!/usr/bin/env zsh
+
+set -u
+
+chezmoi_bin=${CHEZMOI_FETCH_NOTIFY_CHEZMOI_BIN:-chezmoi}
+osascript_bin=${CHEZMOI_FETCH_NOTIFY_OSASCRIPT_BIN:-osascript}
+cache_dir=${CHEZMOI_FETCH_NOTIFY_CACHE_DIR:-"$HOME/Library/Caches/chezmoi-fetch-notify"}
+now_epoch=${CHEZMOI_FETCH_NOTIFY_NOW_EPOCH:-$(date +%s)}
+lock_dir="$cache_dir/run.lock"
+state_file="$cache_dir/last-notified-commit"
+
+function log_error() {
+  print -u2 -- "chezmoi-fetch-notify: $1"
+}
+
+function release_lock() {
+  command rm -f -- "$lock_dir/pid" "$lock_dir/started_at"
+  command rmdir -- "$lock_dir" 2>/dev/null || true
+}
+
+function try_acquire_lock() {
+  command mkdir -p -- "$cache_dir" || return 1
+  if command mkdir -- "$lock_dir" 2>/dev/null; then
+    print -r -- $$ > "$lock_dir/pid"
+    print -r -- "$now_epoch" > "$lock_dir/started_at"
+    return 0
+  fi
+
+  local started_at=0
+  if [[ -r "$lock_dir/started_at" ]]; then
+    read -r started_at < "$lock_dir/started_at"
+  fi
+
+  if [[ $started_at != <-> || $((now_epoch - started_at)) -lt 3600 ]]; then
+    return 2
+  fi
+
+  command rm -f -- "$lock_dir/pid" "$lock_dir/started_at"
+  command rmdir -- "$lock_dir" 2>/dev/null || return 2
+  command mkdir -- "$lock_dir" || return 2
+  print -r -- $$ > "$lock_dir/pid"
+  print -r -- "$now_epoch" > "$lock_dir/started_at"
+}
+
+try_acquire_lock
+lock_status=$?
+[[ $lock_status == 2 ]] && exit 0
+[[ $lock_status == 0 ]] || {
+  log_error "排他ロックを取得できません"
+  exit 1
+}
+trap release_lock EXIT HUP INT TERM
+
+source_dir=$("$chezmoi_bin" source-path 2>/dev/null) || {
+  log_error "Chezmoi正本を取得できません"
+  exit 1
+}
+
+upstream=$(git -C "$source_dir" rev-parse \
+  --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) || {
+  log_error "upstreamが設定されていません"
+  exit 1
+}
+
+git -C "$source_dir" fetch --quiet 2>/dev/null || {
+  log_error "Git fetchに失敗しました"
+  exit 1
+}
+
+behind_count=$(git -C "$source_dir" rev-list \
+  --count 'HEAD..@{upstream}' 2>/dev/null) || {
+  log_error "upstreamとの差分を比較できません"
+  exit 1
+}
+
+[[ $behind_count == 0 ]] && exit 0
+
+upstream_commit=$(git -C "$source_dir" rev-parse '@{upstream}' 2>/dev/null) || {
+  log_error "upstreamのコミットIDを取得できません"
+  exit 1
+}
+
+last_notified=""
+[[ -r "$state_file" ]] && read -r last_notified < "$state_file"
+[[ $last_notified == "$upstream_commit" ]] && exit 0
+
+repo_name=${source_dir:t}
+"$osascript_bin" - "$repo_name" "$behind_count" <<'APPLESCRIPT' || {
+on run argv
+  set repoName to item 1 of argv
+  set behindCount to item 2 of argv
+  display notification (behindCount & "件の未取得コミットがあります") with title ("Chezmoi: " & repoName)
+end run
+APPLESCRIPT
+  log_error "デスクトップ通知に失敗しました"
+  exit 1
+}
+
+state_tmp="$state_file.$$"
+print -r -- "$upstream_commit" > "$state_tmp" || exit 1
+command mv -f -- "$state_tmp" "$state_file" || exit 1

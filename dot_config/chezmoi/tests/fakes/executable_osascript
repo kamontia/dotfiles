@@ -1,0 +1,16 @@
+#!/usr/bin/env zsh
+
+set -u
+
+if [[ ${FAKE_OSASCRIPT_FAIL:-0} == 1 ]]; then
+  print -u2 -- "Fake通知エラー"
+  exit 1
+fi
+
+if [[ -z ${FAKE_NOTIFICATION_LOG:-} ]]; then
+  print -u2 -- "FAKE_NOTIFICATION_LOGが未設定です"
+  exit 2
+fi
+
+cat >/dev/null
+print -r -- "${(j: :)@}" >> "$FAKE_NOTIFICATION_LOG"
