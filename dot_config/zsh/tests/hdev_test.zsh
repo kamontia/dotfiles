@@ -209,6 +209,10 @@ function test_Herdr内の構成済みタブにはペインを追加しない() {
 }
 
 set +e +u
+function claude() {}
+function codex() {}
+function hunk() {}
+
 implementation_path=${HDEV_IMPLEMENTATION_PATH:-"$HOME/.config/zsh/functions/hdev.zsh"}
 source "$implementation_path"
 set -e -u
