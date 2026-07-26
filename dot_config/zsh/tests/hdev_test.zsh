@@ -7,6 +7,7 @@ trap 'command rm -r -- "$test_tmp"' EXIT
 
 fake_log="$test_tmp/herdr.log"
 fake_server_state="$test_tmp/herdr-server-running"
+fake_pane_state="$test_tmp/herdr-panes.state"
 repo_dir="$test_tmp/sample-project"
 mkdir -p "$repo_dir"
 git -C "$repo_dir" init -q
@@ -70,6 +71,9 @@ function herdr() {
     "pane split w1:p9 --direction right --ratio 0.5")
       print -r -- '{"result":{"pane":{"pane_id":"w1:p11"}}}'
       ;;
+    pane\ rename\ *)
+      print -r -- "$3=$4" >> "$fake_pane_state"
+      ;;
     "")
       if [[ ${HERDR_ENV:-0} == 1 ]]; then
         print -u2 -- "error: nested herdr is disabled by default."
@@ -85,6 +89,7 @@ function herdr() {
 
 function reset_fake() {
   : > "$fake_log"
+  : > "$fake_pane_state"
   command rm -f -- "$fake_server_state"
   unset FAKE_EXISTING_WORKSPACE
   unset FAKE_SERVER_STOPPED
@@ -103,6 +108,34 @@ function assert_log_contains() {
     print -u2 -- "期待したHerdr操作がありません: $expected"
     print -u2 -- "--- 実際の操作 ---"
     print -u2 -r -- "$(cat "$fake_log")"
+    return 1
+  fi
+}
+
+function assert_log_lines_starting_with() {
+  local prefix=$1
+  local expected=$2
+  local actual
+
+  actual=$(grep -F -- "$prefix" "$fake_log" || true)
+  if [[ $actual != "$expected" ]]; then
+    print -u2 -- "Herdr操作が期待した集合と一致しません: $prefix"
+    print -u2 -- "expected:\n$expected"
+    print -u2 -- "actual:\n$actual"
+    return 1
+  fi
+}
+
+function assert_file_is() {
+  local file=$1
+  local expected=$2
+  local actual
+
+  actual=$(< "$file")
+  if [[ $actual != "$expected" ]]; then
+    print -u2 -- "Fake状態が期待値と一致しません: $file"
+    print -u2 -- "expected:\n$expected"
+    print -u2 -- "actual:\n$actual"
     return 1
   fi
 }
@@ -126,6 +159,28 @@ function test_claudeを指定するとClaudeCodeを起動する() {
   hdev claude
 
   assert_log_contains "pane run w1:p1 claude"
+}
+
+function test_新規workspaceではペイン分割を正確に2回だけ行う() {
+  reset_fake
+  cd "$repo_dir"
+  local expected=$'pane split w1:p1 --direction down --ratio 0.7\npane split w1:p1 --direction right --ratio 0.5'
+
+  hdev codex
+
+  assert_log_lines_starting_with "pane split " "$expected"
+}
+
+function test_新規workspaceでは3ペインだけを所定の名前に変更する() {
+  reset_fake
+  cd "$repo_dir"
+  local expected_log=$'pane rename w1:p1 codex\npane rename w1:p3 review\npane rename w1:p2 shell'
+  local expected_state=$'w1:p1=codex\nw1:p3=review\nw1:p2=shell'
+
+  hdev codex
+
+  assert_log_lines_starting_with "pane rename " "$expected_log"
+  assert_file_is "$fake_pane_state" "$expected_state"
 }
 
 function test_既存workspaceがあれば新しいタブに3ペインを作る() {
@@ -219,6 +274,8 @@ set -e -u
 
 test_codexを指定すると3ペインを作ってCodexを起動する
 test_claudeを指定するとClaudeCodeを起動する
+test_新規workspaceではペイン分割を正確に2回だけ行う
+test_新規workspaceでは3ペインだけを所定の名前に変更する
 test_既存workspaceがあれば新しいタブに3ペインを作る
 test_未対応の引数を拒否する
 test_Herdr停止中ならサーバーを起動する
