@@ -15,6 +15,8 @@ brew "fzf"
 brew "eza" # exaの後継
 brew "bat"
 brew "chezmoi"
+brew "herdr"
+brew "hunk"
 brew "ripgrep"
 brew "fd"
 
