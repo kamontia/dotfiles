@@ -9,5 +9,5 @@ domain="gui/$(id -u)"
 plist="$HOME/Library/LaunchAgents/$label.plist"
 
 launchctl bootout "$domain/$label" 2>/dev/null || true
-launchctl bootstrap "$domain" "$plist"
 launchctl enable "$domain/$label"
+launchctl bootstrap "$domain" "$plist"

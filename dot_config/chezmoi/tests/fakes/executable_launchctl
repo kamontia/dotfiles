@@ -1,0 +1,29 @@
+#!/usr/bin/env zsh
+
+set -eu
+
+state_dir=${FAKE_LAUNCHCTL_STATE_DIR:?FAKE_LAUNCHCTL_STATE_DIRが未設定です}
+log_file=${FAKE_LAUNCHCTL_LOG:?FAKE_LAUNCHCTL_LOGが未設定です}
+action=${1:-}
+
+print -r -- "${(j: :)@}" >> "$log_file"
+
+case "$action" in
+  bootout)
+    [[ -e "$state_dir/registered" ]] || exit 3
+    command rm -f -- "$state_dir/registered"
+    ;;
+  enable)
+    command rm -f -- "$state_dir/disabled"
+    : > "$state_dir/enabled"
+    ;;
+  bootstrap)
+    [[ ! -e "$state_dir/disabled" ]] || exit 5
+    [[ -f ${3:-} ]] || exit 6
+    : > "$state_dir/registered"
+    ;;
+  *)
+    print -u2 -- "未対応のFake launchctl操作です: ${(j: :)@}"
+    exit 64
+    ;;
+esac
