@@ -18,6 +18,75 @@ function release_lock() {
   command rmdir -- "$lock_dir" 2>/dev/null || true
 }
 
+function is_canonical_epoch() {
+  [[ $1 == 0 || $1 == [1-9] || $1 == [1-9]<-> ]]
+}
+
+function decimal_less_than() {
+  local left=$1
+  local right=$2
+
+  if (( ${#left} < ${#right} )); then
+    return 0
+  fi
+
+  if (( ${#left} > ${#right} )); then
+    return 1
+  fi
+
+  [[ $left < $right ]]
+}
+
+function subtract_decimal() {
+  local minuend=$1
+  local subtrahend=$2
+  local result=""
+  local minuend_digit
+  local subtrahend_digit
+  local -i borrow=0
+  local -i difference=0
+  local -i minuend_index=${#minuend}
+  local -i subtrahend_index=${#subtrahend}
+
+  while (( minuend_index > 0 )); do
+    minuend_digit=${minuend[minuend_index]}
+    subtrahend_digit=0
+    if (( subtrahend_index > 0 )); then
+      subtrahend_digit=${subtrahend[subtrahend_index]}
+    fi
+
+    difference=$((minuend_digit - subtrahend_digit - borrow))
+    borrow=0
+    if (( difference < 0 )); then
+      difference=$((difference + 10))
+      borrow=1
+    fi
+
+    result="$difference$result"
+    (( minuend_index -= 1 ))
+    (( subtrahend_index -= 1 ))
+  done
+
+  while [[ ${#result} -gt 1 && ${result[1]} == 0 ]]; do
+    result=${result[2,-1]}
+  done
+
+  print -r -- "$result"
+}
+
+function lock_is_expired() {
+  local started_at=$1
+  local expiration_threshold
+
+  is_canonical_epoch "$now_epoch" || return 1
+  is_canonical_epoch "$started_at" || return 1
+  decimal_less_than "$now_epoch" 3600 && return 1
+  [[ $now_epoch == 3600 ]] && return 1
+
+  expiration_threshold=$(subtract_decimal "$now_epoch" 3600)
+  decimal_less_than "$started_at" "$expiration_threshold"
+}
+
 function try_acquire_lock() {
   command mkdir -p -- "$cache_dir" || return 1
   if command mkdir -- "$lock_dir" 2>/dev/null; then
@@ -26,12 +95,10 @@ function try_acquire_lock() {
     return 0
   fi
 
-  local started_at=0
-  if [[ -r "$lock_dir/started_at" ]]; then
-    read -r started_at < "$lock_dir/started_at"
-  fi
+  local started_at=""
+  [[ -r "$lock_dir/started_at" ]] && read -r started_at < "$lock_dir/started_at"
 
-  if [[ $started_at != <-> || $((now_epoch - started_at)) -lt 3600 ]]; then
+  if ! lock_is_expired "$started_at"; then
     return 2
   fi
 
@@ -49,7 +116,10 @@ lock_status=$?
   log_error "排他ロックを取得できません"
   exit 1
 }
-trap release_lock EXIT HUP INT TERM
+trap release_lock EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 source_dir=$("$chezmoi_bin" source-path 2>/dev/null) || {
   log_error "Chezmoi正本を取得できません"

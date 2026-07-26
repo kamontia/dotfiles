@@ -85,6 +85,25 @@ function arrange_lock_started_at() {
   print -r -- "$started_at" > "$cache_dir/run.lock/started_at"
 }
 
+function arrange_lock_without_started_at() {
+  mkdir -p "$cache_dir/run.lock"
+  print -r -- 99999 > "$cache_dir/run.lock/pid"
+}
+
+function arrange_unreadable_lock_started_at() {
+  arrange_lock_started_at "$1"
+  chmod 000 "$cache_dir/run.lock/started_at"
+}
+
+function arrange_signal_chezmoi() {
+  local signal=$1
+
+  print -r -- '#!/usr/bin/env zsh' > "$fake_chezmoi"
+  print -r -- 'print -r -- "$FAKE_CHEZMOI_SOURCE_PATH"' >> "$fake_chezmoi"
+  print -r -- "kill -$signal \"\$PPID\"" >> "$fake_chezmoi"
+  chmod +x "$fake_chezmoi"
+}
+
 function assert_file_line_count() {
   local file=$1
   local expected=$2
@@ -113,6 +132,29 @@ function assert_command_error_is() {
   local actual
 
   actual=$(< "$test_tmp/command.stderr")
+  [[ $actual == "$expected" ]]
+}
+
+function assert_command_exits_with() {
+  local expected=$1
+  shift
+  local actual
+
+  if "$@" > "$test_tmp/command.stdout" 2> "$test_tmp/command.stderr"; then
+    actual=0
+  else
+    actual=$?
+  fi
+
+  [[ $actual -eq $expected ]]
+}
+
+function assert_file_is() {
+  local file=$1
+  local expected=$2
+  local actual
+
+  actual=$(< "$file")
   [[ $actual == "$expected" ]]
 }
 
@@ -193,6 +235,72 @@ function test_実行中ロックがあればスキップする() {
   [[ ! -s "$notification_log" ]]
 }
 
+function test_3600秒経過ロックはスキップする() {
+  arrange_synced_repository
+  advance_remote
+  arrange_lock_started_at "$((fake_now - 3600))"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock" ]]
+}
+
+function test_started_at不在ロックはスキップする() {
+  arrange_synced_repository
+  advance_remote
+  arrange_lock_without_started_at
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock" ]]
+}
+
+function test_started_atが読取不能のロックはスキップする() {
+  arrange_synced_repository
+  advance_remote
+  arrange_unreadable_lock_started_at "$((fake_now - 3601))"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock" ]]
+}
+
+function test_started_atが非数値のロックはスキップする() {
+  arrange_synced_repository
+  advance_remote
+  arrange_lock_started_at "not-an-epoch"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock" ]]
+}
+
+function test_started_atが未来のロックはスキップする() {
+  arrange_synced_repository
+  advance_remote
+  arrange_lock_started_at "$((fake_now + 1))"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock" ]]
+}
+
+function test_started_atが過大桁数のロックはスキップする() {
+  arrange_synced_repository
+  advance_remote
+  arrange_lock_started_at "999999999999999999999999999999999999999999"
+
+  run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ -d "$cache_dir/run.lock" ]]
+}
+
 function test_期限切れロックを回収する() {
   arrange_synced_repository
   advance_remote
@@ -207,11 +315,58 @@ function test_期限切れロックを回収する() {
 function test_通知失敗時は状態を更新しない() {
   arrange_synced_repository
   advance_remote
+  mkdir -p "$cache_dir"
+  print -r -- "previous-notified-commit" > "$cache_dir/last-notified-commit"
   export FAKE_OSASCRIPT_FAIL=1
 
   assert_command_fails run_notifier
 
+  assert_file_is "$cache_dir/last-notified-commit" "previous-notified-commit"
+}
+
+function test_通知に正しい引数を渡す() {
+  arrange_synced_repository
+  advance_remote
+
+  run_notifier
+
+  assert_file_is "$notification_log" "- local 1"
+}
+
+function test_TERM受信時は後続処理を実行しない() {
+  arrange_synced_repository
+  advance_remote
+  arrange_signal_chezmoi TERM
+
+  assert_command_exits_with 143 run_notifier
+
+  [[ ! -s "$notification_log" ]]
   [[ ! -e "$cache_dir/last-notified-commit" ]]
+  [[ ! -d "$cache_dir/run.lock" ]]
+}
+
+function test_HUP受信時は後続処理を実行しない() {
+  arrange_synced_repository
+  advance_remote
+  arrange_signal_chezmoi HUP
+
+  assert_command_exits_with 129 run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ ! -e "$cache_dir/last-notified-commit" ]]
+  [[ ! -d "$cache_dir/run.lock" ]]
+}
+
+function test_INT受信時は後続処理を実行しない() {
+  arrange_synced_repository
+  advance_remote
+  arrange_signal_chezmoi INT
+
+  assert_command_exits_with 130 run_notifier
+
+  [[ ! -s "$notification_log" ]]
+  [[ ! -e "$cache_dir/last-notified-commit" ]]
+  [[ ! -d "$cache_dir/run.lock" ]]
 }
 
 test_リモートが先行していなければ通知しない
@@ -221,7 +376,17 @@ test_upstreamが進めば再通知する
 test_fetch失敗時は通知しない
 test_upstream未設定では通知しない
 test_実行中ロックがあればスキップする
+test_3600秒経過ロックはスキップする
+test_started_at不在ロックはスキップする
+test_started_atが読取不能のロックはスキップする
+test_started_atが非数値のロックはスキップする
+test_started_atが未来のロックはスキップする
+test_started_atが過大桁数のロックはスキップする
 test_期限切れロックを回収する
 test_通知失敗時は状態を更新しない
+test_通知に正しい引数を渡す
+test_TERM受信時は後続処理を実行しない
+test_HUP受信時は後続処理を実行しない
+test_INT受信時は後続処理を実行しない
 
 print -- "chezmoi-fetch-notify tests: PASS"
